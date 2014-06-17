@@ -12,6 +12,17 @@
         
     };
 
+    var $CONFIG = {
+        // 模块初始化方法名称
+        'initFnName' : 'init',
+        // 模块销毁方法名称
+        'destroyFnName': 'destroy',
+        // 是否自动加载js文件
+        'autoLoad' : true,
+        // 加载js的路径目录
+        'sourceRoot' : ''
+    };
+
     // js加载器
     var $JSOBJ = {
         // 待加载js地址队列
@@ -63,7 +74,7 @@
                 var scriptNode = document.createElement('script');
                 scriptNode.type = 'text/javascript';
                 scriptNode.defer = config.isAsyn;
-                scriptNode.src = srcUrl;
+                scriptNode.src = $CONFIG.sourceRoot + srcUrl;
                 if (config.isAsyn) {
                     if ('onreadystatechange' in scriptNode) {
                         scriptNode.onreadystatechange = function () {
@@ -144,13 +155,6 @@
     };
 
     var $B = $W.basetools;
-    var $CONFIG = {
-        // 模块初始化方法名称
-        'initFnName' : 'init',
-        // 模块销毁方法名称
-        'destroyFnName': 'destroy',
-        'autoLoad' : true
-    };
 
     /********************
      * 定义通信管理“基站”
