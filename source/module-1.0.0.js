@@ -7,6 +7,14 @@
     var $M = {};
     $M.info = 'VERSION: 1.0.0 \n AUTHOR: liuping \n A Controller For Modules';
 
+
+    // 全局变量
+    var $GLOBAL = {
+        // 已创建句柄列表，
+        // 辅助忽略已执行后，再次调用的重新依赖关系检测
+        // 在create成功时定义，在destroy完成时解除
+        'executedList' : {}
+    };
     // 工具方法集
     var $TOOLS = {
         
@@ -670,6 +678,10 @@
 
     /**
      * 根据已定义规则，生成某个模块(说白了就是执行初始化方法类似于new一个模块对象)
+     * 其逻辑如下：
+     *     每次create，只定义当前创建模块和其直系依赖模块，
+     *     在使用其直系依赖模块时，也通过create方法来调用，
+     *     因此每次只需处理当前模块和该模块的直系依赖模块
      * @param  {[type]} nameStr 要运行的名称
      * @param  {[type]} spec    [description]
      * @return {[type]}         [description]
@@ -693,33 +705,35 @@
         }
         // 如果已有定义，则执行（保证其依赖模块已有定义）
         if( mod ) {
-            for( var i = 0, rLinkL = mod.rLink.length; i < rLinkL; i++ ) {
-                // 已定义的，包括初次运行就定义的和通过之后的加载器加载定义的
-                // 则直接忽略并进入下一个检测
-                if( $B.isDefined( mod.rLink[i], $M.modules ) ) {
-                    continue;
-                }
-                // 未定义的依赖，根据是否开启自动加载做相应的处理
-                else {
-                    // 判断是否开启自动加载js文件
-                    if( !$CONFIG.autoLoad ) {
-                        // 如果未开启，则记录警告，终止执行，返回false
-                        mod.log( 'Rely lost for ' + mod.rLink[i], 'Warning' );
-                        return false;
+            if( !$GLOBAL.executedList[nameStr] ) {
+                for( var i = 0, rLinkL = mod.rLink.length; i < rLinkL; i++ ) {
+                    // 已定义的，包括初次运行就定义的和通过之后的加载器加载定义的
+                    // 则直接忽略并进入下一个检测
+                    if( $B.isDefined( mod.rLink[i], $M.modules ) ) {
+                        continue;
                     }
+                    // 未定义的依赖，根据是否开启自动加载做相应的处理
                     else {
-                        $JSOBJ.loader( $relyList[ mod.rLink[i] ].src, {
-                            'callBack' : function () {
-                                // 如果加载完成依赖的某个模块，
-                                // 则继续执行该模块的构建，
-                                // 重新开始
-                                // （模块是加载即定义的）
-                                $M.create( nameStr, spec );
-                            }
-                        } );
-                        // 这里直接返回，由于js加载需要个过程，
-                        // 当前模块是否创建成功需要等待加载结束后才知晓
-                        return;
+                        // 判断是否开启自动加载js文件
+                        if( !$CONFIG.autoLoad ) {
+                            // 如果未开启，则记录警告，终止执行，返回false
+                            mod.log( 'Rely lost for ' + mod.rLink[i], 'Warning' );
+                            return false;
+                        }
+                        else {
+                            $JSOBJ.loader( $relyList[ mod.rLink[i] ].src, {
+                                'callBack' : function () {
+                                    // 如果加载完成依赖的某个模块，
+                                    // 则继续执行该模块的构建，
+                                    // 重新开始
+                                    // （模块是加载即定义的）
+                                    $M.create( nameStr, spec );
+                                }
+                            } );
+                            // 这里直接返回，由于js加载需要个过程，
+                            // 当前模块是否创建成功需要等待加载结束后才知晓
+                            return;
+                        }
                     }
                 }
             }
@@ -729,6 +743,8 @@
             }
             // 将执行后的句柄赋值给$handler对象
             $handler[ mod.mName ] = (mod[ $CONFIG.initFnName ] && mod[ $CONFIG.initFnName ].apply( mod, spec ));
+            // 记录已完整执行列表
+            $GLOBAL.executedList[nameStr] = true;
             return $handler[ mod.mName ] || true;
         }
         // 如果可查路径，则加载，之后声明定义
@@ -765,6 +781,7 @@
         if( nameStr && $handler[ nameStr] && $handler[ nameStr][ $CONFIG.destroyFnName ] ) {
             $handler[ nameStr][ $CONFIG.destroyFnName ]();
             delete $handler[ nameStr];
+            delete $GLOBAL.executedList[nameStr];
         }
     };
 
