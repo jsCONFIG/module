@@ -1035,7 +1035,7 @@
             default:
                 return false;
         }
-        $CONFIG = $B.paramObj( $CONFIG, specObj );
+        $CONFIG = $B.parseObj( $CONFIG, specObj );
         return true;
     };
 
