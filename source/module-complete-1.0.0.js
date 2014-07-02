@@ -26,6 +26,7 @@
         'destroyFnName': 'destroy',
         // 是否自动加载js文件
         'autoLoad' : true,
+        'autoSrc' : true,
         // 加载js的路径目录
         'sourceRoot' : ''
     };
@@ -857,6 +858,9 @@
      * @return {[type]}         [description]
      */
     M.prototype.require = function ( nameStr, srcUrl ) {
+        if( typeof srcUrl != 'string' && $CONFIG.autoSrc ) {
+            srcUrl = nameStr.replace( /\./g, '\/' ) + '.js';
+        }
         // 全局依赖列表$relyList中存储某个模块支撑的其它模块列表
         if( $relyList[ nameStr ] ) {
             $relyList[ nameStr ].link.push( {
