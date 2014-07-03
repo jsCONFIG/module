@@ -5,7 +5,7 @@
  */
 ( function ( $W ) {
     var $M = {};
-    $M.info = 'VERSION: 1.0.0 \n AUTHOR: liuping \n A Controller For Modules';
+    $M.info = 'VERSION: 2.0.0 \n AUTHOR: liuping \n A Controller For Modules';
 
     // 全局变量
     var $GLOBAL = {
@@ -27,6 +27,11 @@
         // 是否自动加载js文件
         'autoLoad' : true,
         'autoSrc' : true,
+        // 配合某个js加载完成后，再加载另外一个js文件的逻辑
+        'scriptSrc' : 'msrc',
+        'afterSrc' : 'after',
+        // create之后，得到的结果挂载在模块上对应的Key名
+        'handlerName' : 'me',
         // 加载js的路径目录
         'sourceRoot' : ''
     };
@@ -325,7 +330,6 @@
                             var rs = scriptNode.readyState;
                             if (rs.toLowerCase() == 'loaded' || rs.toLowerCase() == 'complete') {
                                 // 执行回调，清除索引简表
-                                // 执行回调，清除索引简表
                                 for( var i = 0, cbksL = cbks.length; i < cbksL; i++ ) {
                                     cbks[i](srcUrl);
                                 }
@@ -366,6 +370,7 @@
                 }
                 return;
             }
+
             var srcUrl = $B.trim(srcUrl);
             var config = $B.parseObj({
                 'isAsyn'    : true,
@@ -386,14 +391,9 @@
             // （PS：此时，如果已经加载完，则不会走到这步，因此，
             // 这时只有两种状态，未加载且不再待加载队列中和未加载但在
             // 待加载队列中）
-            if( $JSOBJ.priorityQueue.cbks[ srcUrl ] ) {
-                $JSOBJ.addQueue(srcUrl, config);
-            }
-            else {
-                $JSOBJ.addQueue(srcUrl, config);
-                if ( !$JSOBJ.globalLock ) {
-                    $JSOBJ.jsTagCreat(config);
-                }
+            $JSOBJ.addQueue(srcUrl, config);
+            if ( !$JSOBJ.globalLock ) {
+                $JSOBJ.jsTagCreat(config);
             }
         }
     };
@@ -522,7 +522,97 @@
         };
     };
 
+    /**
+     * 路径管理基类
+     * @return {[type]} [description]
+     */
+    var $PATH = function () {};
+    $PATH.prototype._set = function ( name, src, sudo ) {
+        if( typeof name != 'string' || typeof src != 'string') {
+            return false;
+        }
+        else if( !this.hasOwnProperty( name ) || sudo ) {
+            this[name] = src;
+            return true;
+        }
+        return false;
+    };
 
+    /**
+     * 依赖加载器
+     */
+    var $loaderLinkState = {};
+    var $loaderLinkCbk = {};
+    var $loaderLink = function ( modr ) {
+        if( $loaderLinkState[ modr.mName ] == 'lock' ) {
+            return;
+        }
+        $loaderLinkState[ modr.mName ] = 'lock';
+        var rLink = modr.rLink;
+
+        var callCbk = function () {
+            var cbks = $loaderLinkCbk[ modr.mName ];
+            for( var m = 0, cbkL = cbks.length; m < cbkL; m++ ) {
+                cbks[m] && cbks[m]();
+            }
+        };
+        if( rLink.length == 0 ) {
+            callCbk();
+            return;
+        }
+        for( var i = 0, rL = rLink.length; i < rL; i++ ) {
+            var nameStr = rLink[i];
+            // 检测该模块是否已经存在
+            if( !$GLOBAL.executedList[ nameStr ] ) {
+                // 检测是否存在依赖
+                if( $relyList[ rLink[i] ] && $relyList[ nameStr ].src ) {
+                    $JSOBJ.loader( $relyList[ nameStr ].src, {
+                        'callBack' : function () {
+                            var mod;
+                            if( nameStr.indexOf('.') == -1 ) {
+                                mod = $M.modules[nameStr]
+                            }
+                            else {
+                                var nameArr = nameStr.split('.');
+                                var tempFunc = $M.modules;
+                                for ( var j = 0; j < nameArr.length; j++ ) {
+                                    tempFunc = tempFunc[nameArr[j]];
+                                    if( typeof tempFunc == 'undefined' ) {
+                                        break;
+                                    }
+                                }
+                                mod = tempFunc;
+                            }
+                            if( mod ) {
+                                $loaderLinkCbk[mod.mName] || ( $loaderLinkCbk[mod.mName] = []);
+                                // 每个直系依赖加载完，都执行回调，
+                                // 减少未加载依赖数，由于使用回调，
+                                // 故只需处理当前模块与其直系依赖，
+                                // 然后通过回调来维持整个依赖链
+                                $loaderLinkCbk[mod.mName].push( function () {
+                                    modr.leftLinkNum--;
+                                    if( modr.leftLinkNum == 0 ) {
+                                        $loaderLinkState[ modr.mName ] = 'ok';
+                                        callCbk();
+                                    }
+                                } );
+                                $loaderLink( mod );
+                            }
+
+                            
+
+                        }
+                    } );
+                }
+                else {
+                    throw 'Error on "require" about ' + modr.mName;
+                }
+            }
+            else {
+                callCbk();
+            }
+        }
+    };
 
     /**
      * 通信管理“基站”定义结束
@@ -556,6 +646,8 @@
         // relation link/关系链
         // 当前模块需要的组件
         this.rLink = [];
+        // 剩余未定义依赖模块数
+        this.leftLinkNum = 0;
         // 行为日志
         this.logList = [];
         // 接口相关
@@ -566,7 +658,9 @@
         this.mUsable = true;
     };
 
-    // 依赖关系列表
+    // 依赖关系列表，详细列表，与简表path相互独立
+    // 更倾向于将简表path中放第三方非规范的的js文件地址
+    // $relyList放规范的js模块文件地址（require中已自动处理）
     var $relyList = {};
 
     // 方法执行后的句柄
@@ -607,6 +701,9 @@
 
     // 这块把basetools引入到框架中
     M.prototype.tools = $B;
+
+    // 把jsLoader作为tools的一部分引入
+    M.prototype.tools.jsLoader = $JSOBJ.loader;
 
     /**
      * 构建模块，用于初始构建或者扩展模块功能
@@ -880,7 +977,21 @@
         // 模块本身的rLink属性中存储该模块依赖的组件
         if( $B.indexOf( nameStr, this.rLink ) == -1 ) {
             this.rLink.push( nameStr );
+            this.leftLinkNum++;
         }
+        var self = this;
+        // 加载依赖，其内部包含检测机制，
+        // 无须担心多次调用
+        $loaderLink( self );
+    };
+
+    // 简写create方法
+    M.prototype.create = function () {
+        var spec;
+        if( arguments.length ) {
+            spec = Array.prototype.slice.call(arguments,0)
+        }
+        $M.create( this.mName, spec );
     };
 
     // 定义的模块都将挂到该对象上
@@ -923,8 +1034,9 @@
      * @param  {[type]} spec    [description]
      * @return {[type]}         [description]
      */
-    $M.create = function ( nameStr, spec ) {
+    $M.create = function ( nameStr, spec, cbk ) {
         nameStr = $B.trim( nameStr );
+        var state = $loaderLinkState[ nameStr ];
         var mod;
         if( nameStr.indexOf('.') == -1 ) {
             mod = $M.modules[nameStr]
@@ -940,72 +1052,40 @@
             }
             mod = tempFunc;
         }
-        // 如果已有定义，则执行（保证其依赖模块已有定义）
-        if( mod ) {
-            if( !$GLOBAL.executedList[nameStr] ) {
-                for( var i = 0, rLinkL = mod.rLink.length; i < rLinkL; i++ ) {
-                    // 已定义的，包括初次运行就定义的和通过之后的加载器加载定义的
-                    // 则直接忽略并进入下一个检测
-                    if( $B.isDefined( mod.rLink[i], $M.modules ) ) {
-                        continue;
-                    }
-                    // 未定义的依赖，根据是否开启自动加载做相应的处理
-                    else {
-                        // 判断是否开启自动加载js文件
-                        if( !$CONFIG.autoLoad ) {
-                            // 如果未开启，则记录警告，终止执行，返回false
-                            mod.log( 'Rely lost for ' + mod.rLink[i], 'Warning' );
-                            return false;
-                        }
-                        else {
-                            $JSOBJ.loader( $relyList[ mod.rLink[i] ].src, {
-                                'callBack' : function () {
-                                    // 如果加载完成依赖的某个模块，
-                                    // 则继续执行该模块的构建，
-                                    // 重新开始
-                                    // （模块是加载即定义的）
-                                    $M.create( nameStr, spec );
-                                }
-                            } );
-                            // 这里直接返回，由于js加载需要个过程，
-                            // 当前模块是否创建成功需要等待加载结束后才知晓
-                            return;
-                        }
-                    }
+        if( mod && !mod.rLink.length ) {
+            state = 'ok';
+        }
+        switch( state ) {
+            // 如果正在拉取依赖中，
+            // 则将执行信息告诉依赖拉取工具
+            // 让工具在依赖拉取完毕之后执行
+            case 'lock':
+                $loaderLinkCbk[nameStr] || ($loaderLinkCbk[nameStr] = []);
+                $loaderLinkCbk[nameStr].push( function () {
+                    $M.create( nameStr, spec, cbk );
+                });
+                break;
+
+
+            // 如果依赖已经拉取完毕，则直接执行
+            case 'ok' :
+                // 将单个参数转化成数组，方便统一处理
+                if( !$B.isArray( spec ) ) {
+                    spec = [ spec ];
                 }
-            }
-            // 将单个参数转化成数组，方便统一处理
-            if( !$B.isArray( spec ) ) {
-                spec = [ spec ];
-            }
-            // 将执行后的句柄赋值给$handler对象
-            $handler[ mod.mName ] = (mod[ $CONFIG.initFnName ] && mod[ $CONFIG.initFnName ].apply( mod, spec ));
-            // 记录已完整执行列表
-            $GLOBAL.executedList[nameStr] = true;
-            return $handler[ mod.mName ] || true;
-        }
-        // 如果可查路径，则加载，之后声明定义
-        // 判断输入是否有效，
-        // 即是否有定义(可通过其它模块的依赖查到)
-        else if( $relyList[ nameStr ] ){
-            // 判断是否开启自动加载js文件
-            if( !$CONFIG.autoLoad ) {
-                // 加入待执行列表
-                // mod.log( 'Rely lost for ' + mod.rLink[i], 'Warning' );
-                return false;
-            }
-            else {
-                $JSOBJ.loader( $relyList[ nameStr ].src, {
-                    'callBack' : function () {
-                        $M.create( nameStr );
-                    }
-                } );
-                return;
-            }
-        }
-        // 表示当前输入的nameStr无效
-        else {
-            throw 'Invalid Input for ' + nameStr;
+                // 将执行后的句柄赋值给$handler对象
+                $handler[ mod.mName ]= mod[$CONFIG.handlerName] = (mod[ $CONFIG.initFnName ] && mod[ $CONFIG.initFnName ].apply( mod, spec ));
+                // 记录已完整执行列表
+                $GLOBAL.executedList[nameStr] = true;
+                cbk && cbk( $handler[ mod.mName ] );
+                return $handler[ mod.mName ] || true;
+                break;
+
+
+            // 如果还未开始拉取依赖
+            // 则做判断，是否起动依赖拉取
+            default:
+                throw 'unknow error on ' + nameStr;
         }
     };
 
@@ -1050,6 +1130,39 @@
     $M.newM = function ( name ) {
         return new M( name );
     };
+
+    /**
+     * 加载资源简写表
+     * @type {}
+     */
+    $M.path = new $PATH;
+
+    $M.jsLoader = $JSOBJ.loader;
+
+    var $pluginInit = function () {
+        // 检索所有的script标签，查看标签上是否存在afterSrc属性
+        // afterSrc属性为当前script标签加载文件加载完成之后再加载的js文件地址
+        var item,
+            srcVal,
+            afterVal,
+            scripts = document.getElementsByTagName('script');
+
+        for( var i = 0, sL = scripts.length; i < sL; i++ ) {
+            item = scripts[i];
+            if( (srcVal = item.getAttribute( $CONFIG.scriptSrc )) && (afterVal = item.getAttribute( $CONFIG.afterSrc )) ) {
+                $JSOBJ.loader( srcVal, {
+                    'callBack' : function () {
+                        $JSOBJ.loader( afterVal );
+                    }
+                } );
+            }
+        }
+    };
+
+    var $init = function () {
+        $pluginInit();
+    };
+    $init();
 
     $W.$M = $M;
 })(window);
