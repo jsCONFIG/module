@@ -1,24 +1,77 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
-    <title>module</title>
+    <meta charset="UTF-8">
+    <meta name="description" content="bmodulejs" >
+    <meta name="keywords" content="bmodulejs,BottleLiu, Bottle Liu" >
+    <title>bmodulejs</title>
+    <link rel="stylesheet" href="static/css/common/base.css">
+    <link rel="stylesheet" href="static/css/page/home.css">
     <style type="text/css">
-        html,*{
-            padding: 0 auto;
-            margin: 0 auto;
+        .tabcontent{
+            display: none;
+        }
+        .tabcontent.active{
+            display: block;
+        }
+        .tabKey li {
+            display: inline-block;
+            padding: 2px 10px;
+            border: 1px solid #999999;
+            cursor: pointer;
+        }
+        .tabKey li.active{
+            background-color: #3399cc;
+            color: #ffffff;
+        }
+        .tabBox{
+            border: 1px solid #cfcfcf;
+            margin: 10px;
+            height: 100px;
+            width: 200px;
+        }
+        small{
+            color: #999999;
+            font-size: 14px;
+            font-family: 'Tahoma';
         }
     </style>
 </head>
 <body>
-    <div class="testTxt">
-        测试文<span>本测</span>试文本测试文本<br />
-        测<span>试文本测</span>试文本测试文本<br />
-        测试文本测试文本测试文本
+    <h3>About bmodulejs-2.0.2</h3>
+    <small>A module management tools for js.</small>
+    <br>
+    <h3>How to use it?</h3>
+    <small>Use bmodulejs-2.0.2. You can use borwser's development tools to check module process.</small>
+    <br>
+    <small>You can use this tools referring to the examples on "static".</small>
+    <br>
+    <small>If you have any questions, you can ask me. My Email: clpliuping@126.com</small>
+
+    <div id="tabtest">
+        <h3>Example: tab module test</h3>
+        <div class="tabKey">
+            <ul>
+                <li class="active" data-tabkey="tabkey">key1</li>
+                <li data-tabkey="tabkey">key2</li>
+                <li data-tabkey="tabkey">key3</li>
+            </ul>
+        </div>
+        <div class="tabBox">
+            <div class="tabcontent active" data-tabcontent="tabcontent">
+                box1
+            </div>
+            <div class="tabcontent" data-tabcontent="tabcontent">
+                box2
+            </div>
+            <div class="tabcontent" data-tabcontent="tabcontent">
+                box3
+            </div>
+        </div>
+
     </div>
-    <script type="text/javascript" src="source/jquery-1.11.1.js"></script>
-    <script type="text/javascript" src="source/basetools-1.0.0.js"></script>
-    <script type="text/javascript" src="source/module-1.0.0.js"></script>
-    <script type="text/javascript" src="source/plugins/highlight.js"></script>
+    <!-- means use "bmodulejs" to load this js file, and after loaded it,keep on loading the js file on "after" -->
+    <script msrc="static/js/common/base.js" after="page/home/main.js"></script>
+    <script src="static/js/common/bmodulejs-2.0.2.js"></script>
 </body>
 </html>
