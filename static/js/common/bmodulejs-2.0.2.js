@@ -5,7 +5,7 @@
  */
 ( function ( $W ) {
     var $M = {};
-    $M.info = 'VERSION: 2.0.0 \n AUTHOR: liuping \n A Controller For Modules';
+    $M.info = 'VERSION: 2.0.2 \n AUTHOR: liuping \n A Controller For Modules';
 
     // 全局变量
     var $GLOBAL = {
@@ -287,7 +287,7 @@
         // 加载全局锁，用于避免一个队列中，已加载(队列中已没有)和将要加载(要加入队列中)的重复
         'globalLock': false,
         // 添加到待加载队列，队列顺序根据其配置的权值
-        'addQueue': function (srcUrl, conf) {
+        'addQueue': function (srcUrl, conf, spec) {
             var config = $B.parseObj({
                 // 权重
                 'power': 0,
@@ -303,7 +303,10 @@
             if( !$JSOBJ.priorityQueue.cbks[ srcUrl ] ) {
                 $JSOBJ.priorityQueue.cbks[ srcUrl ] = [];
             }
-            $JSOBJ.priorityQueue.cbks[ srcUrl ].push( config.callBack );
+            $JSOBJ.priorityQueue.cbks[ srcUrl ].push( {
+                'fn' : config.callBack,
+                'custSpec' : spec
+            } );
         },
 
         'jsTagCreat': function (conf) {
@@ -331,7 +334,7 @@
                             if (rs.toLowerCase() == 'loaded' || rs.toLowerCase() == 'complete') {
                                 // 执行回调，清除索引简表
                                 for( var i = 0, cbksL = cbks.length; i < cbksL; i++ ) {
-                                    cbks[i](srcUrl);
+                                    cbks[i].fn(srcUrl, cbks[i].custSpec );
                                 }
                                 delete $JSOBJ.priorityQueue.cbks[ srcUrl ];
 
@@ -345,7 +348,7 @@
                         scriptNode.onload = function () {
                             // 执行回调，清除索引简表
                             for( var i = 0, cbksL = cbks.length; i < cbksL; i++ ) {
-                                cbks[i](srcUrl);
+                                cbks[i].fn(srcUrl, cbks[i].custSpec );
                             }
                             delete $JSOBJ.priorityQueue.cbks[ srcUrl ];
 
@@ -363,10 +366,10 @@
             }
         },
 
-        'loader': function (srcUrl, conf) {
+        'loader': function (srcUrl, conf, spec ) {
             if ($B.isArray(srcUrl)) {
                 for (var i = 0; i < srcUrl.length; i++) {
-                    $JSOBJ.loader(srcUrl[i], conf);
+                    $JSOBJ.loader(srcUrl[i], conf, spec );
                 }
                 return;
             }
@@ -381,7 +384,7 @@
 
             // 检测状态，如果已加载完，则直接执行回调
             if ($B.indexOf(srcUrl, $JSOBJ.historyQueue) != -1) {
-                config.callBack( srcUrl );
+                config.callBack( srcUrl, spec );
                 return;
             }
 
@@ -391,7 +394,7 @@
             // （PS：此时，如果已经加载完，则不会走到这步，因此，
             // 这时只有两种状态，未加载且不再待加载队列中和未加载但在
             // 待加载队列中）
-            $JSOBJ.addQueue(srcUrl, config);
+            $JSOBJ.addQueue(srcUrl, config, spec );
             if ( !$JSOBJ.globalLock ) {
                 $JSOBJ.jsTagCreat(config);
             }
@@ -539,6 +542,32 @@
     };
 
     /**
+     * 自定义事件绑定和触发
+     */
+    var $CUSTEVT = function () {
+        this._fnstore = {};
+    };
+    $CUSTEVT.prototype.fire = function ( evtType, spec ) {
+        evtType = $B.trim( evtType );
+        if( !evtType ) {
+            return;
+        }
+        var fns = this._fnstore[ evtType ] || [];
+        for( var i = 0, fnsL = fns.length; i < fnsL; i++ ) {
+            fns[i]( spec );
+        }
+    };
+    $CUSTEVT.prototype.add = function ( evtType, fn ) {
+        evtType = $B.trim( evtType );
+        if( !evtType || typeof fn != 'function') {
+            return;
+        }
+        this._fnstore[ evtType ] || (this._fnstore[ evtType ] = []);
+        this._fnstore[ evtType ].push( fn );
+    };
+    var $defineCustevt = new $CUSTEVT();
+
+    /**
      * 依赖加载器
      */
     var $loaderLinkState = {};
@@ -551,7 +580,7 @@
         var rLink = modr.rLink;
 
         var callCbk = function () {
-            var cbks = $loaderLinkCbk[ modr.mName ];
+            var cbks = $loaderLinkCbk[ modr.mName ] || [];
             for( var m = 0, cbkL = cbks.length; m < cbkL; m++ ) {
                 cbks[m] && cbks[m]();
             }
@@ -560,14 +589,15 @@
             callCbk();
             return;
         }
+        var nameStr;
         for( var i = 0, rL = rLink.length; i < rL; i++ ) {
-            var nameStr = rLink[i];
+            nameStr = rLink[i];
             // 检测该模块是否已经存在
             if( !$GLOBAL.executedList[ nameStr ] ) {
                 // 检测是否存在依赖
-                if( $relyList[ rLink[i] ] && $relyList[ nameStr ].src ) {
+                if( $relyList[ nameStr ] && $relyList[ nameStr ].src ) {
                     $JSOBJ.loader( $relyList[ nameStr ].src, {
-                        'callBack' : function () {
+                        'callBack' : function ( src, nameStr ) {
                             var mod;
                             if( nameStr.indexOf('.') == -1 ) {
                                 mod = $M.modules[nameStr]
@@ -583,6 +613,7 @@
                                 }
                                 mod = tempFunc;
                             }
+                            // 此时的mod，就是当前依赖模块
                             if( mod ) {
                                 $loaderLinkCbk[mod.mName] || ( $loaderLinkCbk[mod.mName] = []);
                                 // 每个直系依赖加载完，都执行回调，
@@ -598,18 +629,18 @@
                                 } );
                                 $loaderLink( mod );
                             }
-
-                            
-
+                            else {
+                                throw 'Error in ' + nameStr + '. Please check your code!';
+                            }
                         }
-                    } );
+                    }, nameStr );
                 }
                 else {
                     throw 'Error on "require" about ' + modr.mName;
                 }
             }
             else {
-                callCbk();
+                continue;
             }
         }
     };
@@ -663,6 +694,14 @@
     // $relyList放规范的js模块文件地址（require中已自动处理）
     var $relyList = {};
 
+    // 用于存储模块加载运行状态，
+    // 不代表模块可用，仅代表已定义
+    // 在define方法中更新
+    // {
+    //      'moduleA' : true,
+    //      'moduleB' : false
+    // }
+    var $moduleState = {};
     // 方法执行后的句柄
     var $handler = {};
 
@@ -977,12 +1016,10 @@
         // 模块本身的rLink属性中存储该模块依赖的组件
         if( $B.indexOf( nameStr, this.rLink ) == -1 ) {
             this.rLink.push( nameStr );
+            // 依赖模块数++
             this.leftLinkNum++;
         }
-        var self = this;
-        // 加载依赖，其内部包含检测机制，
-        // 无须担心多次调用
-        $loaderLink( self );
+        
     };
 
     // 简写create方法
@@ -1021,22 +1058,30 @@
             }
             tempFunc[nameArr.pop()] = mExample;
         }
+
         return mExample;
     };
 
     /**
      * 根据已定义规则，生成某个模块(说白了就是执行初始化方法类似于new一个模块对象)
+     * 工作：
+     *     拉取依赖文件
+     *     依赖拉取结束后，执行初始方法
      * 其逻辑如下：
-     *     每次create，只定义当前创建模块和其直系依赖模块，
-     *     在使用其直系依赖模块时，也通过create方法来调用，
-     *     因此每次只需处理当前模块和该模块的直系依赖模块
+     *     每次create，使用依赖load方法，拉取依赖，
+     *     同时，将初始方法的运行交付给loaderLink的回调,
+     *     create仅检测load状态，做相应处理
      * @param  {[type]} nameStr 要运行的名称
      * @param  {[type]} spec    [description]
+     * @param  {[type]} cbk     [description]
      * @return {[type]}         [description]
      */
     $M.create = function ( nameStr, spec, cbk ) {
+        // 做nameStr合法性及相关处理 
         nameStr = $B.trim( nameStr );
-        var state = $loaderLinkState[ nameStr ];
+        if( !nameStr ) {
+            return;
+        }
         var mod;
         if( nameStr.indexOf('.') == -1 ) {
             mod = $M.modules[nameStr]
@@ -1052,13 +1097,25 @@
             }
             mod = tempFunc;
         }
-        if( mod && !mod.rLink.length ) {
+        if( !mod ) {
+            throw 'The module(' + nameStr + ') you input to "create" is not exist!';
+        }
+
+        var state;
+        // 如果不存在依赖，则将state置为可执行状态
+        if( !mod.rLink.length ) {
             state = 'ok';
+        }
+        // 否则，拉取依赖
+        else {
+            state = $loaderLinkState[ nameStr ];
+            if( typeof state == 'undefined' ) {
+                state = $loaderLinkState[ nameStr ] = 'first';
+            }
         }
         switch( state ) {
             // 如果正在拉取依赖中，
-            // 则将执行信息告诉依赖拉取工具
-            // 让工具在依赖拉取完毕之后执行
+            // 则仅存入回调
             case 'lock':
                 $loaderLinkCbk[nameStr] || ($loaderLinkCbk[nameStr] = []);
                 $loaderLinkCbk[nameStr].push( function () {
@@ -1081,9 +1138,16 @@
                 return $handler[ mod.mName ] || true;
                 break;
 
+            // 如果是首次拉取依赖，则存储回调，同时执行
+            case 'first':
+                $loaderLinkCbk[nameStr] || ($loaderLinkCbk[nameStr] = []);
+                $loaderLinkCbk[nameStr].push( function () {
+                    $M.create( nameStr, spec, cbk );
+                });
+                $loaderLink( mod );
+                break;
 
-            // 如果还未开始拉取依赖
-            // 则做判断，是否起动依赖拉取
+            // 其它非预料异常
             default:
                 throw 'unknow error on ' + nameStr;
         }

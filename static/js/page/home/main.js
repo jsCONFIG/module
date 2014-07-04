@@ -4,9 +4,11 @@
     var $mods = $M.modules;
 
     module.require( 'page.home.slide' );
+    module.require( 'common.plugins.tab' );
     module.build( 'init', function () {
+        console.log(module.mName);
         $M.create( 'page.home.slide', document.body );
-        console.log(module.mName, $mods.page.home.slide.me );
+        $M.create( 'common.plugins.tab', $('#tabtest')[0] );
     } );
     module.create();
 })();

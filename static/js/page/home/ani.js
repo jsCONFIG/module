@@ -3,7 +3,7 @@
     var $B = module.tools;
 
     module.build( 'init', function ( node, spec ) {
-        console.log('From ani!', node);
+        console.log(module.mName);
         return {
             'name' : 'ani'
         }
