@@ -5,7 +5,7 @@
  */
 ( function ( $W ) {
     var $M = {};
-    $M.info = 'VERSION: 2.0.2 \n AUTHOR: liuping \n A Controller For Modules';
+    $M.info = 'VERSION: 2.0.3 \n AUTHOR: liuping \n A Controller For Modules';
 
     // 全局变量
     var $GLOBAL = {
@@ -32,6 +32,12 @@
         'afterSrc' : 'after',
         // create之后，得到的结果挂载在模块上对应的Key名
         'handlerName' : 'me',
+        // 是否应用了代码打包，如果是
+        // 则会使require方法不进行文件加载
+        // 供打包工具使用
+        // 开启后，不会进行依赖检测，
+        // 因此，需要打包工具保证依赖关系
+        'codePackage' : false,
         // 加载js的路径目录
         'sourceRoot' : ''
     };
@@ -565,6 +571,21 @@
         this._fnstore[ evtType ] || (this._fnstore[ evtType ] = []);
         this._fnstore[ evtType ].push( fn );
     };
+    $CUSTEVT.prototype.remove = function ( evtType, fn ) {
+        evtType = $B.trim( evtType );
+        if( !evtType || this._fnstore[ evtType ] ) {
+            return;
+        }
+        if( fn ) {
+            var pos = $B.indexOf( fn, this._fnstore[ evtType ] );
+            if( pos != -1 ) {
+                this._fnstore.splice( pos, 1 );
+            }
+        }
+        else {
+            delete this._fnstore[ evtType ];
+        }
+    }
     var $defineCustevt = new $CUSTEVT();
 
     /**
@@ -598,21 +619,7 @@
                 if( $relyList[ nameStr ] && $relyList[ nameStr ].src ) {
                     $JSOBJ.loader( $relyList[ nameStr ].src, {
                         'callBack' : function ( src, nameStr ) {
-                            var mod;
-                            if( nameStr.indexOf('.') == -1 ) {
-                                mod = $M.modules[nameStr]
-                            }
-                            else {
-                                var nameArr = nameStr.split('.');
-                                var tempFunc = $M.modules;
-                                for ( var j = 0; j < nameArr.length; j++ ) {
-                                    tempFunc = tempFunc[nameArr[j]];
-                                    if( typeof tempFunc == 'undefined' ) {
-                                        break;
-                                    }
-                                }
-                                mod = tempFunc;
-                            }
+                            var mod = $M.getModule( nameStr );
                             // 此时的mod，就是当前依赖模块
                             if( mod ) {
                                 $loaderLinkCbk[mod.mName] || ( $loaderLinkCbk[mod.mName] = []);
@@ -640,6 +647,20 @@
                 }
             }
             else {
+                var mod = $M.getModule( nameStr );
+                $loaderLinkCbk[mod.mName] || ( $loaderLinkCbk[mod.mName] = []);
+                // 每个直系依赖加载完，都执行回调，
+                // 减少未加载依赖数，由于使用回调，
+                // 故只需处理当前模块与其直系依赖，
+                // 然后通过回调来维持整个依赖链
+                $loaderLinkCbk[mod.mName].push( function () {
+                    modr.leftLinkNum--;
+                    if( modr.leftLinkNum == 0 ) {
+                        $loaderLinkState[ modr.mName ] = 'ok';
+                        callCbk();
+                    }
+                } );
+                $loaderLink( mod );
                 continue;
             }
         }
@@ -1059,6 +1080,7 @@
             tempFunc[nameArr.pop()] = mExample;
         }
 
+        $GLOBAL.executedList[ mNameStr ] = true;
         return mExample;
     };
 
@@ -1082,21 +1104,7 @@
         if( !nameStr ) {
             return;
         }
-        var mod;
-        if( nameStr.indexOf('.') == -1 ) {
-            mod = $M.modules[nameStr]
-        }
-        else {
-            var nameArr = nameStr.split('.');
-            var tempFunc = $M.modules;
-            for ( var i = 0; i < nameArr.length; i++ ) {
-                tempFunc = tempFunc[nameArr[i]];
-                if( typeof tempFunc == 'undefined' ) {
-                    break;
-                }
-            }
-            mod = tempFunc;
-        }
+        var mod = $M.getModule( nameStr );
         if( !mod ) {
             throw 'The module(' + nameStr + ') you input to "create" is not exist!';
         }
@@ -1112,6 +1120,11 @@
             if( typeof state == 'undefined' ) {
                 state = $loaderLinkState[ nameStr ] = 'first';
             }
+        }
+        // 当进行了代码打包时，无需判断依赖
+        // 直接执行
+        if( $CONFIG.codePackage ) {
+            state = 'ok';
         }
         switch( state ) {
             // 如果正在拉取依赖中，
@@ -1203,6 +1216,30 @@
 
     $M.jsLoader = $JSOBJ.loader;
 
+    // 获取模块
+    $M.getModule = function ( moduleName ) {
+        var nameStr = $B.trim( moduleName );
+        if( !nameStr.length ) {
+            return false;
+        }
+        var mod;
+        if( nameStr.indexOf('.') == -1 ) {
+            mod = $M.modules[nameStr]
+        }
+        else {
+            var nameArr = nameStr.split('.');
+            var tempFunc = $M.modules;
+            for ( var j = 0; j < nameArr.length; j++ ) {
+                tempFunc = tempFunc[nameArr[j]];
+                if( typeof tempFunc == 'undefined' ) {
+                    break;
+                }
+            }
+            mod = tempFunc;
+        }
+        return mod;
+    };
+
     var $pluginInit = function () {
         // 检索所有的script标签，查看标签上是否存在afterSrc属性
         // afterSrc属性为当前script标签加载文件加载完成之后再加载的js文件地址
@@ -1229,4 +1266,4 @@
     $init();
 
     $W.$M = $M;
-})(window);
+})(window);;
