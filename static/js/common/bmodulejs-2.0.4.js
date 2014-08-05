@@ -3,9 +3,20 @@
  * @param  {[type]} $W [description]
  * @return {[type]}    [description]
  */
+/**
+ * 2.0.4更新：
+ * 更新内容：
+ * 1. 解决多个模块require同一个模块造成的逻辑紊乱的Bug;
+ * 2. 增加debug配置，帮助跟踪模块;
+ * 3. 增加log开关，保证在发布时，减少开启log导致的资源消耗;
+ * 4. 打包工具将默认关闭log;
+ * 5. 优化jsLoader的逻辑，修正同一文件多处加载时的重复加载;
+ * @param  {[type]} $W [description]
+ * @return {[type]}    [description]
+ */
 ( function ( $W ) {
     var $M = {};
-    $M.info = 'VERSION: 2.0.3 \n AUTHOR: liuping \n A Controller For Modules';
+    $M.info = 'VERSION: 2.0.4 \n AUTHOR: liuping \n A Controller For Modules';
 
     // 全局变量
     var $GLOBAL = {
@@ -39,7 +50,12 @@
         // 因此，需要打包工具保证依赖关系
         'codePackage' : false,
         // 加载js的路径目录
-        'sourceRoot' : ''
+        'sourceRoot' : '',
+        // debug模式下，会开启tailLog，
+        // 可选择为某种类型的log
+        'debug' : false,
+        // 是否使用log的总开关，优先级高于debug
+        'useLog': true
     };
 
     /*****************
@@ -286,6 +302,9 @@
             // 由于有默认值，因此同时作为状态索引表使用
             'cbks' : {}
         },
+        // 已添加历史记录(仅添加)
+        // 用于保证不重复添加队列
+        'historyPri' : [],
         // 已加载历史记录(已加载完成)
         'historyQueue': [],
         // 存储js加载状态，ture为正在加载，false为加载完成
@@ -300,11 +319,16 @@
                 'callBack' : function () {}
             }, conf || {}, true);
 
-            // 状态繁忙
-            $JSOBJ.busyState[srcUrl] = true;
+            // 判断如果已经在待加载列表中，
+            // 则仅添加回调
+            if( $B.indexOf( srcUrl, $JSOBJ.historyPri ) == -1 && $B.indexOf( srcUrl, $JSOBJ.historyQueue ) == -1 ){
+                // 状态繁忙
+                $JSOBJ.busyState[srcUrl] = true;
 
-            // 加入待加载列表并创建索引表
-            $JSOBJ.priorityQueue.list.splice(config.power, 0, srcUrl );
+                // 加入待加载列表并创建索引表
+                $JSOBJ.priorityQueue.list.splice(config.power, 0, srcUrl );
+            }
+            
             // 创建回调方法列表
             if( !$JSOBJ.priorityQueue.cbks[ srcUrl ] ) {
                 $JSOBJ.priorityQueue.cbks[ srcUrl ] = [];
@@ -313,6 +337,7 @@
                 'fn' : config.callBack,
                 'custSpec' : spec
             } );
+            $JSOBJ.historyPri.push( srcUrl );
         },
 
         'jsTagCreat': function (conf) {
@@ -342,12 +367,12 @@
                                 for( var i = 0, cbksL = cbks.length; i < cbksL; i++ ) {
                                     cbks[i].fn(srcUrl, cbks[i].custSpec );
                                 }
-                                delete $JSOBJ.priorityQueue.cbks[ srcUrl ];
 
                                 // 状态空闲
                                 $JSOBJ.busyState[srcUrl] = false;
                                 config.isClear && $B.removeNode(scriptNode);
                                 $JSOBJ.historyQueue.push(srcUrl);
+                                delete $JSOBJ.priorityQueue.cbks[ srcUrl ];
                             }
                         };
                     } else {
@@ -356,12 +381,12 @@
                             for( var i = 0, cbksL = cbks.length; i < cbksL; i++ ) {
                                 cbks[i].fn(srcUrl, cbks[i].custSpec );
                             }
-                            delete $JSOBJ.priorityQueue.cbks[ srcUrl ];
 
                             // 状态空闲
                             $JSOBJ.busyState[srcUrl] = false;
                             config.isClear && $B.removeNode(scriptNode);
                             $JSOBJ.historyQueue.push(srcUrl);
+                            delete $JSOBJ.priorityQueue.cbks[ srcUrl ];
                         };
                     }
                 }
@@ -593,21 +618,35 @@
      */
     var $loaderLinkState = {};
     var $loaderLinkCbk = {};
+    var $loaderLinkTobeDefined = {};
+    // 检测列表中的模块是否处于可用状态
+    var isModLinkOk = function ( mArr ) {
+        for( var i = 0, mL = mArr.length; i < mL; i++ ) {
+            if( $loaderLinkState[ mArr[i].mName ] != 'ok' ) {
+                return false;
+            }
+        }
+        return true;
+    };
     var $loaderLink = function ( modr ) {
         if( $loaderLinkState[ modr.mName ] == 'lock' ) {
             return;
         }
         $loaderLinkState[ modr.mName ] = 'lock';
+        
         var rLink = modr.rLink;
 
-        var callCbk = function () {
-            var cbks = $loaderLinkCbk[ modr.mName ] || [];
-            for( var m = 0, cbkL = cbks.length; m < cbkL; m++ ) {
-                cbks[m] && cbks[m]();
+        var callCbk = function (modr) {
+            while($loaderLinkCbk[ modr.mName ] && $loaderLinkCbk[ modr.mName ].length){
+                var cbk = $loaderLinkCbk[ modr.mName ].shift();
+                cbk && cbk();
             }
+
+            modr.log( 'Ok for module <' + modr.mName + '>', 'Complete' );
         };
-        if( rLink.length == 0 ) {
-            callCbk();
+        if( rLink.length == 0 || isModLinkOk( rLink ) ) {
+            $loaderLinkState[ modr.mName ] = 'ok';
+            callCbk(modr);
             return;
         }
         var nameStr;
@@ -617,11 +656,13 @@
             if( !$GLOBAL.executedList[ nameStr ] ) {
                 // 检测是否存在依赖
                 if( $relyList[ nameStr ] && $relyList[ nameStr ].src ) {
+                    modr.log( "Loading <" + modr.mName + ">\'s link file<" + nameStr + ">.","Link");
                     $JSOBJ.loader( $relyList[ nameStr ].src, {
+                        // 此处仅能保证加载完成，不能保证加载的代码已经走到了define的位置；
+                        // 因此，需要将回调转移到define的位置
                         'callBack' : function ( src, nameStr ) {
                             var mod = $M.getModule( nameStr );
-                            // 此时的mod，就是当前依赖模块
-                            if( mod ) {
+                            var loaderCbkTemp = function ( mod ) {
                                 $loaderLinkCbk[mod.mName] || ( $loaderLinkCbk[mod.mName] = []);
                                 // 每个直系依赖加载完，都执行回调，
                                 // 减少未加载依赖数，由于使用回调，
@@ -629,15 +670,28 @@
                                 // 然后通过回调来维持整个依赖链
                                 $loaderLinkCbk[mod.mName].push( function () {
                                     modr.leftLinkNum--;
-                                    if( modr.leftLinkNum == 0 ) {
+                                    modr.log( 'Loaded link file <' + mod.mName + '> by <' + modr.mName + '> [left ' + modr.leftLinkNum + ' file]', 'Loaded' );
+                                    if( modr.leftLinkNum <= 0 ) {
+                                        modr.log( 'Completely loaded link file <' + mod.mName + '> by <' + modr.mName + '>', 'AllLoaded' );
                                         $loaderLinkState[ modr.mName ] = 'ok';
-                                        callCbk();
+                                        callCbk(modr);
                                     }
+
                                 } );
                                 $loaderLink( mod );
+                            };
+                            // 此时的mod，就是当前依赖模块
+                            if( mod ) {
+                                loaderCbkTemp( mod );
                             }
                             else {
-                                throw 'Error in ' + nameStr + '. Please check your code!';
+                                if( !$loaderLinkTobeDefined[ nameStr ] ) {
+                                    $loaderLinkTobeDefined[ nameStr ] = [];
+                                }
+                                $loaderLinkTobeDefined[ nameStr ].push( function () {
+                                    var mod = $M.getModule( nameStr );
+                                    loaderCbkTemp( mod );
+                                });
                             }
                         }
                     }, nameStr );
@@ -657,7 +711,7 @@
                     modr.leftLinkNum--;
                     if( modr.leftLinkNum == 0 ) {
                         $loaderLinkState[ modr.mName ] = 'ok';
-                        callCbk();
+                        callCbk(modr);
                     }
                 } );
                 $loaderLink( mod );
@@ -705,7 +759,7 @@
         // 接口相关
         this.interface = {};
         // 用于辅助日志展示行为
-        this.__tailState = false;
+        this.__tailState = $CONFIG.debug || false;
         // 模块接口可使用状态
         this.mUsable = true;
     };
@@ -735,26 +789,48 @@
     // 开启模块方法运行记录，即运行build构造的方法时
     // 会抛出运行记录
     M.prototype.tailLog = function ( state ) {
+        if( !$CONFIG.useLog ) return;
         if( typeof state == 'undefined' ) {
             state = true;
         } 
         if( state && !this.__tailState ) {
-            state && this.showLog();
+            state && this.showLog( this.__tailState );
         }
         this.__tailState = state;
     };
 
     // 记录日志
     M.prototype.log = function ( str, type ) {
+        if( !$CONFIG.useLog ) return;
         var timeStr = $B.getTime( '-' );
         var logStr = 'LOG[' + (type || 'normal') + ']:' + str + ' At ' + timeStr + '\n';
-        this.__tailState && $B.consoleLog( logStr );
+        if( this.__tailState ) {
+            this.__tailState === true && $B.consoleLog( logStr );
+            if( type === this.__tailState ) {
+                $B.consoleLog( logStr );
+            }
+        }
         this.logList[ this.logList.length ] = logStr;
     };
 
     // 展示日志，只展示执行该方法那一刻为止的日志记录
-    M.prototype.showLog = function () {
-        var staticLog = this.logList.join( '' );
+    M.prototype.showLog = function ( type ) {
+        if( !$CONFIG.useLog ) return '';
+        if( typeof type == "string" ) {
+            var staticLog = '';
+            for( var i = 0, logL = this.logList.length; i < logL; i++ ) {
+                var item = this.logList[i];
+                var pose = item.indexOf( ']' ),
+                    poss = item.indexOf( '[' );
+
+                if( item.slice( poss+1, pose ) == type ) {
+                    staticLog += item;
+                }
+            }
+        }
+        else {
+            var staticLog = this.logList.join( '' );
+        }
         $B.consoleLog( staticLog );
         return staticLog;
     };
@@ -847,7 +923,7 @@
             else {
                 this[ i ] = paramObj[ i ];
             }
-            this.log( 'Success define for \"' + i + '\"', 'Success' );
+            this.log( 'Success define for \"' + i + '\" in ' + this.mName, 'Define' );
         }
         return this;
     };
@@ -1081,6 +1157,13 @@
         }
 
         $GLOBAL.executedList[ mNameStr ] = true;
+        if( $loaderLinkTobeDefined[ mNameStr ] ) {
+            var cbks = $loaderLinkTobeDefined[ mNameStr ];
+            for( var i = 0, cbkL = cbks.length; i< cbkL; i++ ) {
+                cbks[i]();
+            }
+            $loaderLinkTobeDefined[ mNameStr ] = [];
+        }
         return mExample;
     };
 
@@ -1266,4 +1349,4 @@
     $init();
 
     $W.$M = $M;
-})(window);;
+})(window);
