@@ -1,4 +1,4 @@
-BModuleJs 2.0.3
+BModuleJs 2.0.5
 ======
 
 #### About
@@ -62,7 +62,7 @@ __Step 2.__
 
     grunt bmodule:filepath[:target:prefix:isUglify]
     # filepath: the file or path you want to strap.
-    # target: the target path or file path for stapped file.
+    # target: the target path or file path for strapped file.
     # prefix: the same with "$M.options('sourceRoot', 'static/js/');" value.
     # isUglify: need to compress.use "0" or "1" to turn off or turn on it.
     eg.
@@ -73,4 +73,3 @@ __Script tag__
     
     <!--Use bmodule to load js.the attribute "after" will be loaded after "msrc"-->
     <script msrc="static/js/common/base.js" after="page/home/main.js"></script>
-    
