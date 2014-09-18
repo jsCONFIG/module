@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 BModuleJs 2.0.5
+=======
+BModuleJs 2.0.4
+>>>>>>> 66d8820e66e4b7c4812daec0987346d52345410d
 ======
 
 #### About
@@ -72,4 +76,17 @@ __Step 2.__
 __Script tag__
     
     <!--Use bmodule to load js.the attribute "after" will be loaded after "msrc"-->
+<<<<<<< HEAD
     <script msrc="static/js/common/base.js" after="page/home/main.js"></script>
+=======
+    <script msrc="static/js/common/base.js" after="page/home/main.js"></script>
+    
+### Debug
+
+    $M.options( 'debug', true );
+    # debug mode
+    # Turn on all logging. The same with "tail -f xxx.log" in Linux.
+    $M.options( 'debug', logType );
+    # logType eg. Define, Complete etc.
+    
+>>>>>>> 66d8820e66e4b7c4812daec0987346d52345410d
