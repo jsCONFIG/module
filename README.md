@@ -31,6 +31,41 @@ __$M.modules;__
 __$M.destroy( nameStr );__
 
     The way to destroy a module.
+    
+__$M.expendT( fnName, fn );__
+
+    The way to expend $M.tools.
+    
+__$M.getModule( nameStr );__
+
+    The way to get module by name string.
+    
+__$M.jsLoader( src, conf );__
+
+    Js loader.
+    @param {object} conf 
+                { 
+                    'cbk' : function (){},
+                    'isAsync' : false,
+                    'isClear' : false,
+                    'sudo' : false'
+                }
+    
+__$M.options();__
+
+    Settings.
+    
+__$M.path();__
+
+    Javascript src setting.
+    
+__$M.reload( nameStr );__
+
+    Reloading those modules which loaded by bmodulejs.
+    
+__$M.tools;__
+
+    Some tools functions.
 
 ### Dependence treatment
 __eg.__
