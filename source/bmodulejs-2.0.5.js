@@ -706,7 +706,7 @@
         var timeStr = $T.getTime( '-' );
         var logStr = 'LOG[' + (type || 'normal') + ']:' + str + ' At ' + timeStr + '\n';
         if( this.__tailState ) {
-            this.__tailState === true && $T.consoleLog( logStr );
+            this.__tailState === 'process' && $T.consoleLog( logStr );
             if( type === this.__tailState ) {
                 $T.consoleLog( logStr );
             }
