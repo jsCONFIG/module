@@ -16,12 +16,6 @@
         'afterSrc' : 'after',
         // create之后，得到的结果挂载在模块上对应的Key名
         'handlerName' : 'me',
-        // 是否应用了代码打包，如果是
-        // 则会使require方法不进行文件加载
-        // 供打包工具使用
-        // 开启后，不会进行依赖检测，
-        // 因此，需要打包工具保证依赖关系
-        'codePackage' : false,
         // 加载js的路径目录
         'sourceRoot' : '',
         // debug模式下，会开启tailLog，
