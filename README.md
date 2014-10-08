@@ -3,7 +3,7 @@ BModuleJs 2.0.5
 
 #### About
 A Controller For Modules.You can use it as javascript modules controller, which can help you to make your code more structured.
-You can also use it to tracking code by use the function "module.tailLog('process')" so that you can see the running log of the modules.
+You can also use it to tracking code by use the function "module.tailLog('process')" so that you can see the running log of the modules.For some misuse, the version 2.0.6 on "npm" equal to the version 2.0.5 on "git".I'm so sorry for this issue.
 
     # You can get it by: 
     npm install bmodulejs
