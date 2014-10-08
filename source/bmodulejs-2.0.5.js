@@ -1,4 +1,8 @@
 !function (){
+    if( window.$M && typeof window.$M == 'object' ) {
+        return;
+    }
+
     var $M = {},
         // 工具集tools
         $T = {},
@@ -1117,9 +1121,34 @@
         return true;
     };
 
-    /**
-     * 基类定义结束
-     * ************/
+    // publish/subscribe
+    $M.pubsub = (function () {
+        var pool = new _msg;
+        var msender = {
+            'mName' : '$pub'
+        };
+        var pubChannel = '__pub_channel_' + $T.unikey(4) + '_';
+        return {
+            'publish' : function ( topic, spec ) {
+                if( topic.length > 0 && topic.length <= 10 ) {
+                    pool.push( spec, pubChannel + topic, msender );
+                    return true;
+                }
+            },
+            'subscribe' : function ( topic, fn ) {
+                if( topic.length > 0 && topic.length <= 10 ) {
+                    pool.addHandler( pubChannel + topic, fn );
+                    return true;
+                }
+            },
+            'unsub' : function ( topic, fn ) {
+                if( topic.length > 0 && topic.length <= 10 ) {
+                    pool.delHandler( pubChannel + topic, fn );
+                    return true;
+                }
+            }
+        };
+    })();
 
     $M.newM = function ( name ) {
         return new M( name );
@@ -1215,6 +1244,13 @@
     };
     $init();
 
-    window.$M = $M;
+    if ( typeof window.module === "object" && window.module && typeof window.module.exports === "object" ) {
+        window.module.exports = $M;
+    } else {
+        window.$M = $M;
 
+        if ( typeof define === "function" && define.amd ) {
+            define( "bmodulejs", [], function () { return $M; } );
+        }
+    }
 }();
