@@ -72,20 +72,34 @@ __$M.tools;__
 ### Dependence treatment
 __eg.__
 
-    var module = $M.define('page.home.main');
-    var $B = module.tools;
-    var $mods = $M.modules;
-    // Dependence treatment,use "require"
-    module.require( 'page.home.slide' );
-    module.require( 'common.plugins.tab' );
-    // build init function, 
-    // which will be called on "module.create()"(the same with $M.create('page.home.main'))
-    module.build( 'init', function () {
-        console.log(module.mName);
-        $M.create( 'page.home.slide', document.body );
-        $M.create( 'common.plugins.tab', $('#tabtest')[0] );
-    } );
-    module.create();
+    ~function () {
+    var module = $M.define( 'home/init' );
+        // get it when "create" be called.
+        module.require( 'common/database' );
+        var mods = $M.modules;
+        module.build( 'init', function () {
+            console.log( arguments );
+            var nd = document.getElementById( 'example' );
+            var dataConf = {
+                'idx' : ['num', 'name', 'age']
+            };
+            var database = new mods.common.database.me( dataConf );
+            for( var i = 0; i < 99999; i++ ) {
+                database.create( {
+                    'num'   : i,
+                    'name'  : 'BottleLiu' + i,
+                    'age'   : i % 24
+                } );
+            }
+            var str = '';
+            var strTotal = 'Data length: ' + database.total + '<br><br>';
+            var strGet = 'The length of data which age equal 23: ' + database.get({'age' : 23}).length;
+            str = strTotal + strGet;
+            nd.innerHTML = str;
+            return database;
+        });
+        module.create('Arguments for init function.');
+    }();
     
 
 ### Strapping Tools
