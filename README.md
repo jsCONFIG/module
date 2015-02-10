@@ -1,11 +1,11 @@
-BModuleJs 2.0.5
+BModuleJs 2.0.7
 ======
 
 [![Bmodulejs](http://img.shields.io/npm/v/bmodulejs.svg)](https://www.npmjs.org/package/bmodulejs) [![Bmodulejs](http://img.shields.io/npm/dm/bmodulejs.svg)](https://www.npmjs.org/package/bmodulejs)
 
 #### About
 A Controller For Modules.You can use it as javascript modules controller, which can help you to make your code more structured.
-You can also use it to tracking code by use the function "module.tailLog('process')" so that you can see the running log of the modules.For some misuse, the version 2.0.6 on "npm" equal to the version 2.0.5 on "git".I'm so sorry for this issue.
+You can also use it to tracking code by use the function "module.tailLog('process')" so that you can see the running log of the modules.
 
     # You can get it by: 
     npm install bmodulejs
@@ -109,4 +109,4 @@ __Step 2.__
 __Script tag__
     
     <!--Use bmodule to load js.the attribute "after" will be loaded after "msrc"-->
-    <script msrc="static/js/common/base.js" after="page/home/main.js"></script>
+    <script src="source/bmodulejs-2.0.7.js" msrc="static/js/common/base.js" after="static/js/home/init.js"></script>

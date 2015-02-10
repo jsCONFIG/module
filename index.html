@@ -8,6 +8,19 @@
     <link rel="stylesheet" href="static/css/common/base.css">
     <link rel="stylesheet" href="static/css/page/home.css">
     <style type="text/css">
+        body{
+            font-family: Menlo,Monaco,Consolas,"Courier New",monospace;
+        }
+        .code{
+            color: #aa1111;
+            background-color: #f1f1f1;
+            padding: 1px 2px;
+            font-size: 12px;
+        }
+        div.code{
+            margin: 10px 10px 30px 10px;
+            padding: 5px 10px;
+        }
         .tabcontent{
             display: none;
         }
@@ -33,60 +46,406 @@
         small{
             color: #999999;
             font-size: 14px;
-            font-family: 'Tahoma';
         }
         .important{
             color: #2b2b2b;
             text-decoration: underline;
         }
+        .step{
+            color: #2b2b2b;
+            display: block;
+            padding-left: 10px;
+            border-left: 3px solid #cfcfcf;
+        }
+        .code .codeI{
+            padding-left: 20px;
+        }
+        .code .note{
+            color: #999;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
-    <h3>About bmodulejs-2.0.5</h3>
+    <h3>About bmodulejs-2.0.7</h3>
     <small>A module management tools for js.</small>
     <br>
     <h3>How to use it?</h3>
-    <small>Use bmodulejs-2.0.5. You can use borwser's development tools to check module process.</small>
-    <br>
-    <small>You can use this tools referring to the examples on "static".</small>
-    <br>
-    <small>If you have any questions, you can ask me. My Email: clpliuping@126.com</small>
-    <h3>About 2.0.5</h3>
+    <p class="step">
+        No1. Add "bmodulejs" to your page.
+    </p>
+    <p class="step">
+        No2. Modify the configuration information by <span class="code">$M.options()</span>.
+    </p>
+    <p class="step">
+        No3. Just use it.
+    </p>
+    
+    <h3>About 2.0.7</h3>
     <ul>
         <li>
-            <small>Optimizing the structure.</small>
+            <small>Optimizing the <span class="code">$M.tools.getTime()</span>.</small>
         </li>
         <li>
-            <small class="important">Optimizing js loader</small>
+            <small>Add <span class="code">$M.use()</span> function</small>
+        </li>
+        <li>
+            <small>The delimiter for namespace can be custom. And default '/'.</small>
         </li>
     </ul>
-    <div id="tabtest">
-        <h3>Example: tab module test</h3>
-        <div class="tabKey">
-            <ul>
-                <li class="active" data-tabkey="tabkey">key1</li>
-                <li data-tabkey="tabkey">key2</li>
-                <li data-tabkey="tabkey">key3</li>
-            </ul>
+    <h3>API</h3>
+    <div>
+        <h5>$M:</h5>
+        <div class="step">
+            1. $M.create
+            <small>(Create a defined module.)</small>
         </div>
-        <div class="tabBox">
-            <div class="tabcontent active" data-tabcontent="tabcontent">
-                box1
-            </div>
-            <div class="tabcontent" data-tabcontent="tabcontent">
-                box2
-            </div>
-            <div class="tabcontent" data-tabcontent="tabcontent">
-                box3
-            </div>
+        <div class="code">
+            $M.create('page/home/main');
         </div>
+
+        <div class="step">
+            2. $M.define
+            <small>(Define a module.)</small>
+        </div>
+        <div class="code">
+            $M.define( 'page/home/main' );
+        </div>
+
+        <div class="step">
+            3. $M.destroy
+            <small>(Destroy a module)</small>
+        </div>
+        <div class="code">
+            $M.destroy( 'page/home/main' );
+        </div>
+
+        <div class="step">
+            4. $M.expandT
+            <small>(Expand tools function on $M.tools)</small>
+        </div>
+        <div class="code">
+            <p>$M.expandT({</p>
+                <div class="codeI">'say' : function (){console.log('Hello')}</div>
+            <p>})</p>
+            <p class="note">// or</p>
+            <p>$M.expandT( 'say', function () {</p>
+                <div class="codeI">console.log( 'Hello' );</div>
+            <p>});</p>
+        </div>
+
+        <div class="step">
+            5. $M.getModule
+            <small>(Get a defined module.)</small>
+        </div>
+        <div class="code">
+            $M.getModule('page/home/main');
+        </div>
+
+        <div class="step">
+            6. $M.info
+        </div>
+        <div class="code">
+            console.log( $M.info );<span class="note">// VERSION: 2.0.7; AUTHOR: liuping; A Controller For Modules</span>
+        </div>
+
+        <div class="step">
+            7. $M.jsLoader
+            <small>(js loader.)</small>
+        </div>
+        <div class="code">
+            <p>$M.jsLoader('static/js/common/zepto-1.1.3.min.js', {</p>
+                <div class="codeI">
+                <p class="note">// callback function</p>
+                <p>'cbk' : function () { console.log('ok');},</p>
+                <p class="note">// Is clear "script" tags.</p>
+                <p>'isClear' : true,</p>
+                <p>'sudo' : false</p>
+                </div>
+            <p>});</p>
+        </div>
+
+        <div class="step">
+            8. $M.modules
+            <small>(Namespace for defined modules.)</small>
+        </div>
+        <div class="code">
+            console.log( $M.modules );
+        </div>
+
+        <div class="step">
+            9. $M.newM
+            <small>(Return a module object.)</small>
+        </div>
+        <div class="code">
+            console.log( $M.newM('tmp') );
+        </div>
+
+        <div class="step">
+            10. $M.options
+            <small>(Settings)</small>
+        </div>
+        <div class="code">
+            <p>$M.options({</p>
+                <p class="codeI">'debug' : 'process'</p>
+            <p>});</p>
+            <p class="note">// or</p>
+            <p>$M.options( 'debug', 'process' );</p>
+        </div>
+
+        <div class="step">
+            11. $M.path
+            <small>(Path management)</small>
+        </div>
+        <div class="code">
+            <p class="note">// set</p>
+            $M.path.set( 'zepto1.1.3', 'static/js/common/zepto-1.1.3.min.js' );
+
+            <p class="note">// get</p>
+            $M.path.get('zepto1.1.3');
+        </div>
+
+        <div class="step">
+            12. $M.pubsub
+            <small>(Publish and subscribe)</small>
+        </div>
+        <div class="code">
+            var fn = function ( spec ) { console.log( spec );};
+            <p class="note">// subscribe</p>
+            $M.pubsub.subscribe( 'mytopic', fn );
+            <p class="note">// publish</p>
+            $M.pubsub.publish( 'mytopic', 'my data.' );
+            <p class="note">// Unsubscribe</p>
+            $M.unsub( 'mytopic', fn );
+        </div>
+
+        <div class="step">
+            13. $M.reload
+            <small>(Reload a module)</small>
+        </div>
+        <div class="code">
+            $M.reload( 'page/home/main' );
+        </div>
+
+        <div class="step">
+            14. $M.tools
+            <small>(Tools function)</small>
+        </div>
+        <div class="code">
+            console.log( $M.tools.getTime() );
+        </div>
+
+        <div class="step">
+            15. $M.use
+            <small>(Return module.me)</small>
+        </div>
+        <div class="code">
+            <p class="note">// Like "$M.getModule('page/home/main').me" </p>
+            console.log( $M.use('page/home/main') );
+        </div>
+    </div>
+    <div>
+        <h5>module:</h5>
+        <div class="step">
+            1. module.mName
+            <small>(The module name.)</small>
+        </div>
+        <div class="code">
+            console.log(module.mName);
+        </div>
+        <div class="step">
+            2. module.mUsable
+            <small>(Is this module can be used, Which means all off the "require" module has been defined.)</small>
+        </div>
+        <div class="step">
+            3. module.rLink
+            <small>Required modules.</small>
+        </div>
+        <div class="step">
+            4. module.build
+            <small>(Add method, attributes, or other module on module object.)</small>
+        </div>
+        <div class="code">
+            <p>var module = $M.define('page/home/main');</p>
+                <div class="codeI">
+                <p>module.build( 'myFns', function () {</p>
+                <p>console.log('hello!');</p>
+                </div>
+            <p>});</p>
+            <p class="note">// 'hello!'</p>
+            <p>module.myFns();</p>
+            <p class="note">// You can also copy one module's method to another module.</p>
+            <p class="note">// But it will not copy those existed method unless you make "true" as second parameter which like "sudo" on linux.</p>
+        </div>
+        <div class="step">
+            5. module.create
+            <small>(like $M.create)</small>
+        </div>
+        <div class="code">
+            <p>var module = $M.define('page/home/main');</p>
+            <p class="note">// xxxxx...</p>
+            <p>module.create();</p>
+
+            <p class="note">// or</p>
+
+            <p>$M.create( 'page/home/main' );</p>
+        </div>
+
+        <div class="step">
+            6. module.log
+            <small>(Create log to module.logList)</small>
+        </div>
+        <div class="code">
+            <p class="note">// Msg, LogType</p>
+            <p>module.log( 'Error msg', 'Error' );</p>
+            <p class="note">// Show log. LogType</p>
+            <p>module.showLog('Error');</p>
+        </div>
+
+        <div class="step">
+            7. module.mMonitor
+            <small>(Module Communication. Monitor)</small>
+        </div>
+        <div class="code">
+            <p>module.mMonitor( function () {</p>
+                <p class="codeI">console.log( arguments );</p>
+            <p>})</p>
+        </div>
+
+        <div class="step">
+            8. module.mSend
+            <small>(Module Communication. Send)</small>
+        </div>
+        <div class="code">
+            <p>var myData = 'hello';</p>
+            <p class="note">// Send to module "page.home.main"</p>
+            <p>module.mSend( myData, 'page/home/main');</p>
+        </div>
+
+        <div class="step">
+            9. module.mUnmonitor
+            <small>(Module Communication. Unbind)</small>
+        </div>
+        <div class="code">
+            moduel.mUnmonitor( Fn );
+        </div>
+
+        <div class="step">
+            10. module.require
+            <small>(Important! Disclaimer dependent module.)</small>
+        </div>
+        <div class="code">
+            <p>var module = $M.define('page/home/main');</p>
+            <p class="note">// require</p>
+            <p>module.require( 'page/home/slide' );</p>
+            <p>module.require( 'common/plugins/tab' );</p>
+        </div>
+
+        <div class="step">
+            11. module.showLog
+            <small>(Show log)</small>
+        </div>
+        <div class="code">
+            <p class="note">// show all of the log.</p>
+            <p>module.showLog();</p>
+            <p class="note">// show all of the "Error" log.</p>
+            <p>module.showLog('Error');</p>
+        </div>
+
+        <div class="step">
+            12. module.tailLog
+            <small>(Useful method. Just like "tail -f xxx" on linux)</small>
+        </div>
+        <div class="code">
+            <p class="note">// Real-time display all of the log</p>
+            <p>module.taiLog();</p>
+            <p class="note">// Real-time display all of the "Error" log</p>
+            <p>module.taiLog('Error');</p>
+        </div>
+    </div>
+    <div>
+        <h3>Example</h3>
+        <div class="step">
+            No.1: Add "bmodulejs".
+        </div>
+        <div class="code">
+            &lt;script src="source/bmodulejs-2.0.7.js" msrc="static/js/base.js" after="static/js/init.js" &gt;&lt;/script&gt;
+        </div>
+        <div class="step">
+            No.2: Config <small>-base.js</small>
+        </div>
+        <div class="code">
+            <p class="note">// Turn on debugging.</p>
+            $M.options( 'debug', true ); <br>
+            <br>
+            <p class="note">// base url</p>
+            $M.options('sourceRoot', 'static/js/');
+        </div>
+        <div class="step">
+            No.3: build module <small>-init.js</small>
+        </div>
+        <div class="code">
+            ~function () {
+                <div class="codeI">
+                <p>var module = $M.define( 'home/init' );</p>
+
+                <p class="note">// get it when "create" be called.</p>
+                <p>module.require( 'common/database' );</p>
+
+                <p>var mods = $M.modules;</p>
+                <p>module.build( 'init', function () {</p>
+                    <div class="codeI">
+                    <p>console.log( arguments );</p>
+
+                    <p>var nd = document.getElementById( 'example' );</p>
+
+                    <p>var dataConf = {</p>
+                        <div class="codeI">
+                            <p class="note">// index keys</p>
+                            'idx' : ['num', 'name', 'age']
+                        </div>
+                    <p>};</p>
+                    <p class="note">// create database</p>
+                    <p>var database = new mods.common.database.me( dataConf );</p>
+
+                    <p>for( var i = 0; i &lt; 99999; i++ ) {</p>
+                        <div class="codeI">
+                        <p>database.create( {</p>
+                            <div class="codeI">
+                            <p>'num'   : i,</p>
+                            <p>'name'  : 'BottleLiu' + i,</p>
+                            <p>'age'   : i % 24</p>
+                            </div>
+                        <p>} );</p>
+                        </div>
+                    }
+
+                    <p>var str = '';</p>
+
+                    <p>var strTotal = 'Data length: ' + database.total + '&lt;br&gt;&lt;br&gt;';</p>
+
+                    <p>var strGet = 'The length of data which age equal 23: ' + database.get({'age' : 23}).length;</p>
+
+                    <p>str = strTotal + strGet;</p>
+
+                    <p>nd.innerHTML = str;</p>
+
+                    <p>return database;</p>
+                    </div>
+                <p>});</p>
+
+                <p>module.create('Arguments for init function.');</p>
+                </div>
+            }();
+        </div>
+        
+        <div class="step">
+            Result:
+        </div>
+        <div id="example" class="code"></div>
 
     </div>
     <!-- means use "bmodulejs" to load this js file, and after loaded it,keep on loading the js file on "after" -->
-    <script msrc="static/js/common/base.js" after="static/js/page/home/main.js"></script>
-    <script src="source/bmodulejs-2.0.5.js"></script>
-    <script>
-        window.$M && $M.options( 'debug', true );
-    </script>
+    <script src="source/bmodulejs-2.0.7.js" msrc="static/js/common/base.js" after="static/js/home/init.js"></script>
 </body>
 </html>

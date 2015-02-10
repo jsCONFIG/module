@@ -9,8 +9,10 @@
         // config
         $C = {};
 
-    $M.info = 'VERSION: 2.0.5 \n AUTHOR: liuping \n A Controller For Modules';
+    $M.info = 'VERSION: 2.0.7 \n AUTHOR: liuping \n A Controller For Modules';
     $C = {
+        // 分割符
+        'splitSym'   : '/',
         // 模块初始化方法名称
         'initFnName' : 'init',
         // 模块销毁方法名称
@@ -133,41 +135,110 @@
         return l;
     };
 
-    // 获取当前时间，linkStr为分隔符，
-    // offsetDay为平移时间
-    _tools.prototype.getTime = function ( linkStr, offsetDay ) {
-        var linkStr = linkStr || '/';
-        var d = new Date();
-        var offD = parseInt( offsetDay );
+    // 获取当前时间，当前支持'Y,y,m,n,d,j,g,G,h,H,i,s'
+    _tools.prototype.getTime = function( formateStr, dateObj ) {
+        var dObj = (dateObj && dateObj.constructor == Date) ? dateObj : (new Date());
 
-        if ( !isNaN( offD ) ) {
-            // 获取秒数
-            var dayS = 86400000 * offD;
-            d = new Date( (+d) + dayS );
+        formateStr = formateStr || 'Y-m-d H:i:s';
+
+        var dStr    = '',
+            year    = dObj.getFullYear(),
+            month   = dObj.getMonth() + 1,
+            date    = dObj.getDate(),
+            hours   = dObj.getHours(),
+            minutes = dObj.getMinutes(),
+            seconds = dObj.getSeconds(),
+            yearStr = year.toString(),
+            monthStr= month.toString(),
+            dateStr = date.toString(),
+            hoursStr= hours.toString(),
+            minuStr = minutes.toString(),
+            secStr  = seconds.toString();
+
+        for( var i = 0, fL = formateStr.length; i < fL; i++ ) {
+            var flag = formateStr.charAt( i );
+
+            switch( flag ) {
+                /**
+                 * 年
+                 */
+                // 四位完整年数，如:"2014"
+                case 'Y':
+                    dStr += yearStr;
+                    break;
+
+                // 两位年数，如14
+                case 'y':
+                    dStr += yearStr.slice( yearStr.length - 2 );;
+                    break;
+
+                /**
+                 * 月
+                 */
+                // 有前导0的月数，eg. "01"
+                case 'm':
+                    dStr += (monthStr.length < 2 ? ('0' + monthStr) : monthStr);
+                    break;
+
+                // 无前导0的月数
+                case 'n':
+                    dStr += monthStr;
+                    break;
+
+                /**
+                 * 日
+                 */
+                // 有前导0的日数
+                case 'd':
+                    dStr += (dateStr.length < 2 ? ('0' + dateStr) : dateStr);
+                    break;
+
+                // 无前导0的日数
+                case 'j':
+                    dStr += dateStr;
+                    break;
+
+                /**
+                 * 时间
+                 */
+                // 12小时制，无前导0
+                case 'g':
+                    dStr += (hours % 12);
+                    break;
+
+                // 24小时制，无前导0
+                case 'G':
+                    dStr += hours;
+                    break;
+
+                // 12小时制，有前导0
+                case 'h':
+                    var hTmp = (hours % 12).toString();
+                    dStr += (hTmp.length < 2 ? ('0' + hTmp) : hTmp);
+                    break;
+
+                // 24小时制，有前导0
+                case 'H':
+                    dStr += (hoursStr.length < 2 ? ('0' + hoursStr) : hoursStr);
+                    break;
+
+                // 带前导0的分钟
+                case 'i':
+                    dStr += (minuStr.length < 2 ? ('0' + minuStr) : minuStr);
+                    break;
+
+                // 带前导0的秒钟
+                case 's':
+                    dStr += (secStr.length < 2 ? ('0' + secStr) : secStr);
+                    break;
+
+                // 其它情况直接相加
+                default:
+                    dStr += flag;
+            }
         }
-        var mon = (d.getMonth() + 1),
-            day = d.getDate(),
-            minu= d.getMinutes(),
-            hour= d.getHours(),
-            seco= d.getSeconds(),
-            year= d.getFullYear();
 
-
-        mon = mon.toString().length < 2 ? ('0' + mon) : mon;
-        day = day.toString().length < 2 ? ('0' + day) : day;
-        hour = hour.toString().length < 2 ? ('0' + hour) : hour;
-        minu = minu.toString().length < 2 ? ('0' + minu) : minu;
-        seco = seco.toString().length < 2 ? ('0' + seco) : seco;
-
-        var dayArr = [];
-        dayArr.push( year );
-        dayArr.push( mon );
-        dayArr.push( day );
-        var hourArr = [];
-        hourArr.push( hour );
-        hourArr.push( minu );
-        hourArr.push( seco );
-        return dayArr.join( linkStr ) + ' ' + hourArr.join( ':' );
+        return dStr;
     };
 
     // 类继承方法，保证先继承，然后在定制化
@@ -234,11 +305,11 @@
     _tools.prototype.isDefined = function ( nameStr, obj ) {
         nameStr = this.trim( nameStr );
         var mod;
-        if( nameStr.indexOf('.') == -1 ) {
+        if( nameStr.indexOf($C.splitSym) == -1 ) {
             mod = obj[nameStr]
         }
         else {
-            var nameArr = nameStr.split('.');
+            var nameArr = nameStr.split($C.splitSym);
             var tempFunc = obj;
             for ( var i = 0; i < nameArr.length; i++ ) {
                 tempFunc = tempFunc[nameArr[i]];
@@ -707,7 +778,7 @@
     // 记录日志
     M.prototype.log = function ( str, type ) {
         if( !$C.useLog ) return;
-        var timeStr = $T.getTime( '-' );
+        var timeStr = $T.getTime();
         var logStr = 'LOG[' + (type || 'normal') + ']:' + str + ' At ' + timeStr + '\n';
         if( this.__tailState ) {
             this.__tailState === 'process' && $T.consoleLog( logStr );
@@ -810,7 +881,7 @@
                     this[ i ] = function () {
                         // 运行日志
                         if( this.__tailState == 'process' && !this.needSkip( i ) ) {
-                            this.log( 'Running:' + (this.mName || 'anonymity') + '.' + i, 'Record' );
+                            this.log( 'Running:' + (this.mName || 'anonymity') + $C.splitSym + i, 'Record' );
                         }
                         return paramObj[ i ].apply( this, arguments );
                     };
@@ -964,7 +1035,7 @@
             var custPath = $M.path.get( nameStr );
             var path = $mPath.get( nameStr );
             var pathStr = (typeof custPath == 'string' ? custPath : path);
-            srcStr = (typeof pathStr == 'string' ? pathStr : nameStr.replace( /\./g, '\/' ) + '.js');
+            srcStr = (typeof pathStr == 'string' ? pathStr : nameStr + '.js');
         }
         srcStr = $C.sourceRoot + $T.trim( srcStr );
         $mPath.set( nameStr, srcStr );
@@ -998,14 +1069,14 @@
     $M.define = function ( mNameStr ) {
         mNameStr = $T.trim( mNameStr );
         var mExample = new M( mNameStr );
-        if( mNameStr.indexOf('.') == -1 ) {
+        if( mNameStr.indexOf($C.splitSym) == -1 ) {
             if( mNameStr in $M.modules ) {
                 throw 'Repeat define for ' + mNameStr;
             }
             $M.modules[ mNameStr ] = mExample;
         }
         else {
-            var nameArr = mNameStr.split('.');
+            var nameArr = mNameStr.split($C.splitSym);
             var tempFunc = $M.modules;
             for ( var i = 0; i < nameArr.length - 1; i++ ) {
                 tempFunc = tempFunc[nameArr[i]] = (nameArr[i] in tempFunc) ? tempFunc[nameArr[i]] : {};
@@ -1169,11 +1240,11 @@
             return false;
         }
         var mod;
-        if( nameStr.indexOf('.') == -1 ) {
+        if( nameStr.indexOf($C.splitSym) == -1 ) {
             mod = $M.modules[nameStr]
         }
         else {
-            var nameArr = nameStr.split('.');
+            var nameArr = nameStr.split($C.splitSym);
             var tempFunc = $M.modules;
             for ( var j = 0; j < nameArr.length; j++ ) {
                 tempFunc = tempFunc[nameArr[j]];
@@ -1184,6 +1255,12 @@
             mod = tempFunc;
         }
         return mod;
+    };
+
+    // 使用模块，返回模块对象的handlerName属性
+    $M.use = function ( moduleName ) {
+        var mod = $M.getModule( moduleName );
+        return mod && mod[ $C.handlerName ];
     };
 
     // 扩展外抛的tools工具集
