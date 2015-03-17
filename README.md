@@ -3,6 +3,8 @@ BModuleJs 2.0.7
 
 [![Bmodulejs](http://img.shields.io/npm/v/bmodulejs.svg)](https://www.npmjs.org/package/bmodulejs) [![Bmodulejs](http://img.shields.io/npm/dm/bmodulejs.svg)](https://www.npmjs.org/package/bmodulejs)
 
+### The better "module" is to be started!
+
 #### About
 A Controller For Modules.You can use it as javascript modules controller, which can help you to make your code more structured.
 You can also use it to tracking code by use the function "module.tailLog('process')" so that you can see the running log of the modules.
@@ -16,7 +18,7 @@ __$M.define( mNameStr );__
     Define a new module.
     @param {string} [mNameStr] module name, use "." to split namespace.
     @return {object}
-    var module = $M.define( 'page.home.main' );
+    var module = $M.define( 'page/home/main' );
     
 __$M.create( nameStr, spec, cbk );__
 
