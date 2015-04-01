@@ -1,9 +1,7 @@
-BModuleJs 2.0.7
+BModuleJs 2.1.0
 ======
 
 [![Bmodulejs](http://img.shields.io/npm/v/bmodulejs.svg)](https://www.npmjs.org/package/bmodulejs) [![Bmodulejs](http://img.shields.io/npm/dm/bmodulejs.svg)](https://www.npmjs.org/package/bmodulejs)
-
-### The better "module" is to be started!
 
 #### About
 A Controller For Modules.You can use it as javascript modules controller, which can help you to make your code more structured.
