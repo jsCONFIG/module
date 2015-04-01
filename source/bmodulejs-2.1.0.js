@@ -323,8 +323,8 @@
     };
 
     // 将item扩展到obj的nameStr空间下
-    _tools.prototype.nameSpace = function (nameStr, obj, item) {
-        var nameArr = nameStr.split($C.splitSym);
+    _tools.prototype.nameSpace = function (nameStr, obj, item, splitSym) {
+        var nameArr = nameStr.split(splitSym || $C.splitSym);
         var arrL = nameArr.length;
         if (arrL === 0) {
             return false;
@@ -335,6 +335,42 @@
             tmpObj = tmpObj[nameItem] =  tmpObj[nameItem] || {}; 
         }
         tmpObj[nameArr.shift()] = item;
+    };
+
+    // 根据nameStr，获取对应对象上的值，无则返回null
+    _tools.prototype.nameToItem = function (nameStr, obj, splitSym) {
+        nameStr = $T.trim(nameStr);
+
+        if ( !nameStr.length ) {
+            return null;
+        }
+        var item = null,
+            sym = splitSym || $C.splitSym;
+
+        if ( nameStr.indexOf(sym) === -1 ) {
+            item = obj[nameStr]
+        }
+        else {
+            var nameArr = nameStr.split(sym);
+            var tempFunc = obj;
+
+            for ( var j = 0; j < nameArr.length; j++ ) {
+                if (!(nameArr[j] in tempFunc)) {
+                    return null;
+                }
+                tempFunc = tempFunc[nameArr[j]];
+                if ( typeof tempFunc === 'undefined' ) {
+                    // 如果不是到达最底部时就为undefined，
+                    // 或者在对象上无该项，则返回null
+                    if (j < nameArr.length - 1) {
+                        tempFunc = null;
+                    }
+                    break;
+                }
+            }
+            item = tempFunc;
+        }
+        return item;
     };
 
     $T = new _tools;
@@ -1059,14 +1095,18 @@
     M.prototype.require = function ( nameStr, srcUrl ) {
         var srcStr = srcUrl;
         nameStr = $T.trim( nameStr );
-        if( typeof srcUrl != 'string' || !$T.trim( srcUrl ) ) {
+
+        if ( typeof srcUrl != 'string' || !$T.trim( srcUrl ) ) {
             var custPath = $M.path.get( nameStr );
             var path = $mPath.get( nameStr );
             var pathStr = (typeof custPath == 'string' ? custPath : path);
+
             srcStr = (typeof pathStr == 'string' ? pathStr : nameStr + '.js');
         }
         srcStr = $C.sourceRoot + $T.trim( srcStr );
+
         $mPath.set( nameStr, srcStr );
+
         // 避免重复添加
         !_rely.list.hasOwnProperty( nameStr ) && (_rely.list[ nameStr ] = srcStr);
         $T.indexOf( nameStr, this.rLink ) == -1 && (this.rLink.push( nameStr ));
@@ -1301,26 +1341,12 @@
 
     // 获取模块
     $M.getModule = function ( moduleName ) {
-        var nameStr = $T.trim( moduleName );
-        if( !nameStr.length ) {
-            return false;
-        }
-        var mod;
-        if( nameStr.indexOf($C.splitSym) == -1 ) {
-            mod = $M.modules[nameStr]
-        }
-        else {
-            var nameArr = nameStr.split($C.splitSym);
-            var tempFunc = $M.modules;
-            for ( var j = 0; j < nameArr.length; j++ ) {
-                tempFunc = tempFunc[nameArr[j]];
-                if( typeof tempFunc == 'undefined' ) {
-                    break;
-                }
-            }
-            mod = tempFunc;
-        }
-        return mod;
+        return $T.nameToItem(moduleName, $M.modules);
+    };
+
+    // 获取模块返回的方法
+    $M.getMod = function (moduleName) {
+        return $T.nameToItem(moduleName, $M.mods);
     };
 
     // 使用模块，返回模块对象的handlerName属性

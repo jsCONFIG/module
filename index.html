@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="description" content="bmodulejs" >
     <meta name="keywords" content="bmodulejs,BottleLiu, Bottle Liu" >
-    <title>bmodulejs</title>
+    <title>bmodulejs 2.1.0</title>
     <link rel="stylesheet" href="static/css/common/base.css">
     <link rel="stylesheet" href="static/css/page/home.css">
     <style type="text/css">
@@ -67,7 +67,7 @@
     </style>
 </head>
 <body>
-    <h3>About bmodulejs-2.0.7</h3>
+    <h3>About bmodulejs-2.1.0</h3>
     <small>A module management tools for js.</small>
     <br>
     <h3>How to use it?</h3>
@@ -81,16 +81,16 @@
         No3. Just use it.
     </p>
     
-    <h3>About 2.0.7</h3>
+    <h3>About 2.1.0</h3>
     <ul>
         <li>
-            <small>Optimizing the <span class="code">$M.tools.getTime()</span>.</small>
+            <small>Simplify the way to define a module.
         </li>
         <li>
-            <small>Add <span class="code">$M.use()</span> function</small>
+            <small>Simplify the way to use others module function by <span class="code">$M.mods</span> </small>
         </li>
         <li>
-            <small>The delimiter for namespace can be custom. And default '/'.</small>
+            <small>Change the way to deal with those variable returned by "create".</small>
         </li>
     </ul>
     <h3>API</h3>
@@ -106,14 +106,41 @@
 
         <div class="step">
             2. $M.define
-            <small>(Define a module.)</small>
+            <small>(Define a module and set it.)</small>
         </div>
         <div class="code">
-            $M.define( 'page/home/main' );
+            <p>$M.define( 'page/home/main', function (module, $T, mods, ms) {</p>
+                <p class="codeI">
+                    module.require('common/database');
+                <div class="codeI">return function () {
+                    <div class="codeI">
+                        <br>
+                        <p> // use the module's function by "mods", the same with $M.mods</p>
+                        <p>var database = new mods.common.database( dataConf );</p>
+                        <br>
+
+                        <p>// show module's log by "ms", the same with $M.modules.</p>
+                        <p>ms.common.database.showLog();</p>
+
+                        <p>return {</p>
+                            <p class="codeI">state: 'finished'</p>
+                        <p>};</p>
+                    </div>
+                };</div>
+            });</p>
+        </div>
+        
+        <div class="step">
+            3. $M.defineModule
+            <small>(Just define a module, and return a module object.)</small>
+        </div>
+        <div class="code">
+            <p>// which just return a module object, and without any info. except the name.</p>
+            <p>$M.defineModule( 'page/home/main' );</p>
         </div>
 
         <div class="step">
-            3. $M.destroy
+            4. $M.destroy
             <small>(Destroy a module)</small>
         </div>
         <div class="code">
@@ -121,7 +148,7 @@
         </div>
 
         <div class="step">
-            4. $M.expandT
+            5. $M.expandT
             <small>(Expand tools function on $M.tools)</small>
         </div>
         <div class="code">
@@ -135,22 +162,30 @@
         </div>
 
         <div class="step">
-            5. $M.getModule
-            <small>(Get a defined module.)</small>
+            6. $M.getModule
+            <small>(Get a defined module object.)</small>
         </div>
         <div class="code">
-            $M.getModule('page/home/main');
+            $M.getModule('home/init');
         </div>
 
         <div class="step">
-            6. $M.info
+            7. $M.getMod
+            <small>(Get a defined module's function or other data.)</small>
+        </div>
+        <div class="code">
+            $M.getMod('home/init');
+        </div>
+
+        <div class="step">
+            8. $M.info
         </div>
         <div class="code">
             console.log( $M.info );<span class="note">// VERSION: 2.0.7; AUTHOR: liuping; A Controller For Modules</span>
         </div>
 
         <div class="step">
-            7. $M.jsLoader
+            9. $M.jsLoader
             <small>(js loader.)</small>
         </div>
         <div class="code">
@@ -166,7 +201,7 @@
         </div>
 
         <div class="step">
-            8. $M.modules
+            10. $M.modules
             <small>(Namespace for defined modules.)</small>
         </div>
         <div class="code">
@@ -174,7 +209,15 @@
         </div>
 
         <div class="step">
-            9. $M.newM
+            11. $M.mods
+            <small>(Namespace for the return value by module's "create" function.)</small>
+        </div>
+        <div class="code">
+            console.log( $M.mods );
+        </div>
+
+        <div class="step">
+            12. $M.newM
             <small>(Return a module object.)</small>
         </div>
         <div class="code">
@@ -182,7 +225,7 @@
         </div>
 
         <div class="step">
-            10. $M.options
+            13. $M.options
             <small>(Settings)</small>
         </div>
         <div class="code">
@@ -194,7 +237,7 @@
         </div>
 
         <div class="step">
-            11. $M.path
+            14. $M.path
             <small>(Path management)</small>
         </div>
         <div class="code">
@@ -206,7 +249,7 @@
         </div>
 
         <div class="step">
-            12. $M.pubsub
+            15. $M.pubsub
             <small>(Publish and subscribe)</small>
         </div>
         <div class="code">
@@ -220,7 +263,7 @@
         </div>
 
         <div class="step">
-            13. $M.reload
+            16. $M.reload
             <small>(Reload a module)</small>
         </div>
         <div class="code">
@@ -228,7 +271,7 @@
         </div>
 
         <div class="step">
-            14. $M.tools
+            17. $M.tools
             <small>(Tools function)</small>
         </div>
         <div class="code">
@@ -236,7 +279,7 @@
         </div>
 
         <div class="step">
-            15. $M.use
+            18. $M.use
             <small>(Return module.me)</small>
         </div>
         <div class="code">
@@ -266,7 +309,7 @@
             <small>(Add method, attributes, or other module on module object.)</small>
         </div>
         <div class="code">
-            <p>var module = $M.define('page/home/main');</p>
+            <p>var module = $M.defineModule('home/main');</p>
                 <div class="codeI">
                 <p>module.build( 'myFns', function () {</p>
                 <p>console.log('hello!');</p>
@@ -282,7 +325,8 @@
             <small>(like $M.create)</small>
         </div>
         <div class="code">
-            <p>var module = $M.define('page/home/main');</p>
+            <p class="note">// just a module object, an you need to use "build" to set init. function.</p>
+            <p>var module = $M.defineModule('home/main');</p>
             <p class="note">// xxxxx...</p>
             <p>module.create();</p>
 
@@ -335,10 +379,24 @@
             <small>(Important! Disclaimer dependent module.)</small>
         </div>
         <div class="code">
-            <p>var module = $M.define('page/home/main');</p>
+            <p class="note">// type 1</p>
+            <p>var module = $M.defineModule('home/main');</p>
             <p class="note">// require</p>
             <p>module.require( 'page/home/slide' );</p>
             <p>module.require( 'common/plugins/tab' );</p>
+            <br>
+            <p class="note">// type 2</p>
+            $M.define('home/main', function (module, $T, mods, ms) {
+                <div class="codeI">
+                <p>module.require('common/database');</p>
+
+                return function () {
+                    <div class="codeI">
+                        <p class="note">// xxxx</p>
+                    </div>
+                };
+                </div>
+            }).create();
         </div>
 
         <div class="step">
@@ -385,15 +443,13 @@
             No.3: build module <small>-init.js</small>
         </div>
         <div class="code">
-            ~function () {
+            $M.define('home/init', function (module, $T, mods, ms) {
                 <div class="codeI">
-                <p>var module = $M.define( 'home/init' );</p>
 
                 <p class="note">// get it when "create" be called.</p>
                 <p>module.require( 'common/database' );</p>
 
-                <p>var mods = $M.modules;</p>
-                <p>module.build( 'init', function () {</p>
+                <p>return function () {</p>
                     <div class="codeI">
                     <p>console.log( arguments );</p>
 
@@ -406,7 +462,7 @@
                         </div>
                     <p>};</p>
                     <p class="note">// create database</p>
-                    <p>var database = new mods.common.database.me( dataConf );</p>
+                    <p>var database = new mods.common.database( dataConf );</p>
 
                     <p>for( var i = 0; i &lt; 99999; i++ ) {</p>
                         <div class="codeI">
@@ -432,11 +488,10 @@
 
                     <p>return database;</p>
                     </div>
-                <p>});</p>
+                <p>};</p>
 
-                <p>module.create('Arguments for init function.');</p>
                 </div>
-            }();
+            }).create('Arguments for init function.');
         </div>
         
         <div class="step">
@@ -446,6 +501,6 @@
 
     </div>
     <!-- means use "bmodulejs" to load this js file, and after loaded it,keep on loading the js file on "after" -->
-    <script src="source/bmodulejs-2.0.7.js" msrc="static/js/common/base.js" after="static/js/home/init.js"></script>
+    <script src="source/bmodulejs-2.1.0.js" msrc="static/js/common/base.js" after="static/js/home/init.js"></script>
 </body>
 </html>
