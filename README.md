@@ -46,6 +46,8 @@ __$M.define( mNameStr )__
         };
     }).create();
 
+> If the returned value is a function or depends on other module,you must use a function to wrap it. In other cases, you can just return it.
+
 __$M.newM__
 
     Get a module object.
