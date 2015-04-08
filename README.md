@@ -112,34 +112,56 @@ __$M.tools;__
 ### Dependence treatment
 __eg.__
 
-    ~function () {
-    var module = $M.define( 'home/init' );
+    $M.define('home/init', function (module, $T, mods, ms) {
         // get it when "create" be called.
+
         module.require( 'common/database' );
-        var mods = $M.modules;
-        module.build( 'init', function () {
+
+        return function () {
+
             console.log( arguments );
+
             var nd = document.getElementById( 'example' );
+
             var dataConf = {
+
+                // index keys
+
                 'idx' : ['num', 'name', 'age']
             };
-            var database = new mods.common.database.me( dataConf );
+
+            // create database
+
+            var database = new mods.common.database( dataConf );
+
             for( var i = 0; i < 99999; i++ ) {
+
                 database.create( {
-                    'num'   : i,
-                    'name'  : 'BottleLiu' + i,
-                    'age'   : i % 24
+
+                    'num' : i,
+
+                    'name' : 'BottleLiu' + i,
+
+                    'age' : i % 24
+
                 } );
+
             }
             var str = '';
+
             var strTotal = 'Data length: ' + database.total + '<br><br>';
+
             var strGet = 'The length of data which age equal 23: ' + database.get({'age' : 23}).length;
+
             str = strTotal + strGet;
+
             nd.innerHTML = str;
+
             return database;
-        });
-        module.create('Arguments for init function.');
-    }();
+
+        };
+
+    }).create('Arguments for init function.');
     
 
 ### Strapping Tools
