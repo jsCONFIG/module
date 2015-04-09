@@ -1,11 +1,8 @@
-~function () {
-    var module = $M.define( 'home/init' );
-
+$M.define('home/init', function (module, $T, mods, ms) {
     // get it when "create" be called.
     module.require( 'common/database' );
 
-    var mods = $M.modules;
-    module.build( 'init', function () {
+    return function () {
         console.log( arguments );
 
         var nd = document.getElementById( 'example' );
@@ -13,7 +10,7 @@
         var dataConf = {
             'idx' : ['num', 'name', 'age']
         };
-        var database = new mods.common.database.me( dataConf );
+        var database = new mods.common.database( dataConf );
 
         for( var i = 0; i < 99999; i++ ) {
             database.create( {
@@ -34,7 +31,5 @@
         nd.innerHTML = str;
 
         return database;
-    });
-
-    module.create('Arguments for init function.');
-}();
+    };
+}).create('Arguments for init function.');

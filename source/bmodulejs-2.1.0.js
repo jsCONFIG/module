@@ -9,7 +9,7 @@
         // config
         $C = {};
 
-    $M.info = 'VERSION: 2.0.7 \n AUTHOR: liuping \n A Controller For Modules';
+    $M.info = 'VERSION: 2.1.0 \n AUTHOR: liuping \n A Controller For Modules';
     $C = {
         // 分割符
         'splitSym'   : '/',
@@ -320,6 +320,57 @@
             mod = tempFunc;
         }
         return !!mod;
+    };
+
+    // 将item扩展到obj的nameStr空间下
+    _tools.prototype.nameSpace = function (nameStr, obj, item, splitSym) {
+        var nameArr = nameStr.split(splitSym || $C.splitSym);
+        var arrL = nameArr.length;
+        if (arrL === 0) {
+            return false;
+        }
+        var tmpObj = obj, nameItem;
+        while (nameArr.length > 1){
+            nameItem = nameArr.shift();
+            tmpObj = tmpObj[nameItem] =  tmpObj[nameItem] || {}; 
+        }
+        tmpObj[nameArr.shift()] = item;
+    };
+
+    // 根据nameStr，获取对应对象上的值，无则返回null
+    _tools.prototype.nameToItem = function (nameStr, obj, splitSym) {
+        nameStr = $T.trim(nameStr);
+
+        if ( !nameStr.length ) {
+            return null;
+        }
+        var item = null,
+            sym = splitSym || $C.splitSym;
+
+        if ( nameStr.indexOf(sym) === -1 ) {
+            item = obj[nameStr]
+        }
+        else {
+            var nameArr = nameStr.split(sym);
+            var tempFunc = obj;
+
+            for ( var j = 0; j < nameArr.length; j++ ) {
+                if (!(nameArr[j] in tempFunc)) {
+                    return null;
+                }
+                tempFunc = tempFunc[nameArr[j]];
+                if ( typeof tempFunc === 'undefined' ) {
+                    // 如果不是到达最底部时就为undefined，
+                    // 或者在对象上无该项，则返回null
+                    if (j < nameArr.length - 1) {
+                        tempFunc = null;
+                    }
+                    break;
+                }
+            }
+            item = tempFunc;
+        }
+        return item;
     };
 
     $T = new _tools;
@@ -834,6 +885,16 @@
 
         // 筛检参数
         switch( typeof arguments[0] ) {
+            // 直接传入function则默认追加到启动方法“init”下
+            case 'function':
+                var argHandler = arguments[0]();
+                // if (typeof argHandler != 'function') {
+                //     this.log( 'Bad return for \"factory\"! The return must be function', 'Error' );
+                //     return false;
+                // }
+                paramObj[$C.initFnName] = argHandler;
+                break;
+
             case 'object' :
                 paramObj = arguments[0];
                 sudo = arguments[1];
@@ -847,25 +908,28 @@
                     }
                 }
                 break;
+
             case 'string' :
                 paramObj[ arguments[0] ] = arguments[1];
                 sudo = arguments[2];
                 break;
+
             default :
                 this.log( 'Illegal param for \"building\"', 'Error' );
                 return;
         }
+
         // 扩展功能
-        for( var i in paramObj ) {
+        for ( var i in paramObj ) {
             // 由于这块推荐的是通过M实例化的模块间的功能复制，
             // 因此不复制位于原型中的方法和属性
-            if( !paramObj.hasOwnProperty( i ) ) {
+            if ( !paramObj.hasOwnProperty( i ) ) {
                 continue;
             }
-            if( this.hasOwnProperty( i ) ) {
+            if ( this.hasOwnProperty( i ) ) {
                 // 如果强制写入，则忽略重复，记录警告日志
                 // 否则重复时忽略写入，记录错误日志
-                if( sudo ){
+                if ( sudo ){
                     this.log( 'Repeat define for \"' + i + '\"', 'Warning' );
                 }
                 else {
@@ -875,12 +939,12 @@
             }
 
             // 如果定义的是方法，则增加运行日志
-            if( typeof paramObj[ i ] == 'function' ) {
+            if ( typeof paramObj[ i ] == 'function' ) {
                 // 如果当前传入是由M构造而来，则不做日志记录处理
-                if( paramObj.constructor != M ) {
+                if ( paramObj.constructor != M ) {
                     this[ i ] = function () {
                         // 运行日志
-                        if( this.__tailState == 'process' && !this.needSkip( i ) ) {
+                        if ( this.__tailState == 'process' && !this.needSkip( i ) ) {
                             this.log( 'Running:' + (this.mName || 'anonymity') + $C.splitSym + i, 'Record' );
                         }
                         return paramObj[ i ].apply( this, arguments );
@@ -1031,14 +1095,18 @@
     M.prototype.require = function ( nameStr, srcUrl ) {
         var srcStr = srcUrl;
         nameStr = $T.trim( nameStr );
-        if( typeof srcUrl != 'string' || !$T.trim( srcUrl ) ) {
+
+        if ( typeof srcUrl != 'string' || !$T.trim( srcUrl ) ) {
             var custPath = $M.path.get( nameStr );
             var path = $mPath.get( nameStr );
             var pathStr = (typeof custPath == 'string' ? custPath : path);
+
             srcStr = (typeof pathStr == 'string' ? pathStr : nameStr + '.js');
         }
         srcStr = $C.sourceRoot + $T.trim( srcStr );
+
         $mPath.set( nameStr, srcStr );
+
         // 避免重复添加
         !_rely.list.hasOwnProperty( nameStr ) && (_rely.list[ nameStr ] = srcStr);
         $T.indexOf( nameStr, this.rLink ) == -1 && (this.rLink.push( nameStr ));
@@ -1057,33 +1125,46 @@
 
     // 定义的模块都将挂到该对象上
     $M.modules = {};
+
+    // 定义的模块的me都将挂到该对象上，
+    // 如同mods为modules的简写一样，mods上仅会挂载modules中的me的部分
+    $M.mods = {};
+
     // 自定义路径
     $M.path = new _path();
+
     /**
-     * 定义模块，该定义方法会返回定义好的模块基类实例
+     * 定义模块<就是旧版中的$M.define>，该定义方法会返回定义好的模块基类实例
      * 实例的之后扩展全在返回得到实例之后进行，所以整个
      * 操作在一个闭包中进行
      * @param  {[type]} mNameStr 实例挂载的命名空间
      * @return {[type]}          实例
      */
-    $M.define = function ( mNameStr ) {
+    $M.defineModule = function ( mNameStr ) {
         mNameStr = $T.trim( mNameStr );
         var mExample = new M( mNameStr );
-        if( mNameStr.indexOf($C.splitSym) == -1 ) {
-            if( mNameStr in $M.modules ) {
-                throw 'Repeat define for ' + mNameStr;
+
+        if ( mNameStr.indexOf($C.splitSym) === -1 ) {
+
+            if ( mNameStr in $M.modules ) {
+                throw 'Repeat define module for ' + mNameStr;
             }
+
             $M.modules[ mNameStr ] = mExample;
         }
         else {
             var nameArr = mNameStr.split($C.splitSym);
             var tempFunc = $M.modules;
-            for ( var i = 0; i < nameArr.length - 1; i++ ) {
+
+            for ( var i = 0, arrL = nameArr.length - 1; i < arrL; i++ ) {
                 tempFunc = tempFunc[nameArr[i]] = (nameArr[i] in tempFunc) ? tempFunc[nameArr[i]] : {};
             }
+
             tempFunc[nameArr.pop()] = mExample;
         }
+
         _rely.defined[ mNameStr ] = true;
+
         $T.delay(function (){
             var fns = _rely.tobestart[ mNameStr ];
             while( fns && fns.length ) {
@@ -1091,7 +1172,23 @@
                 fn();
             }
         });
+
         return mExample;
+    };
+
+    /**
+     * 2.1.0 $M.define修改版，集成define与build( 'init', factory );功能
+     */
+    $M.define = function (mName, factory){
+        // define a module.
+        var module = $M.defineModule( mName );
+
+        // 扩展后的build方法会把传入的function直接执行，取其返回句柄作为实际的初始挂载方法
+        module.build(function () {
+            return factory(module, $M.tools, $M.mods, $M.modules);
+        });
+
+        return module;
     };
 
     /**
@@ -1120,10 +1217,19 @@
         }
         var cbkFn = function () {
             // 将单个参数转化成数组，方便统一处理
-            if( !$T.isArray( spec ) ) {
+            if ( !$T.isArray( spec ) ) {
                 spec = [ spec ];
             }
-            mod[ $C.handlerName ] = (mod[ $C.initFnName ] && mod[ $C.initFnName ].apply( mod, spec ));
+            var initItem = mod[ $C.initFnName ];
+            var initHandler;
+            if( typeof initItem === 'function') {
+                initHandler = initItem.apply( mod, spec );
+            }
+            else {
+                initHandler = initItem;
+            }
+            mod[ $C.handlerName ] = initHandler;
+            $T.nameSpace( nameStr, $M.mods, initHandler );
             cbk && cbk( mod );
         };
         _rely.start( nameStr, cbkFn );
@@ -1235,26 +1341,12 @@
 
     // 获取模块
     $M.getModule = function ( moduleName ) {
-        var nameStr = $T.trim( moduleName );
-        if( !nameStr.length ) {
-            return false;
-        }
-        var mod;
-        if( nameStr.indexOf($C.splitSym) == -1 ) {
-            mod = $M.modules[nameStr]
-        }
-        else {
-            var nameArr = nameStr.split($C.splitSym);
-            var tempFunc = $M.modules;
-            for ( var j = 0; j < nameArr.length; j++ ) {
-                tempFunc = tempFunc[nameArr[j]];
-                if( typeof tempFunc == 'undefined' ) {
-                    break;
-                }
-            }
-            mod = tempFunc;
-        }
-        return mod;
+        return $T.nameToItem(moduleName, $M.modules);
+    };
+
+    // 获取模块返回的方法
+    $M.getMod = function (moduleName) {
+        return $T.nameToItem(moduleName, $M.mods);
     };
 
     // 使用模块，返回模块对象的handlerName属性

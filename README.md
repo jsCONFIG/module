@@ -1,25 +1,57 @@
-BModuleJs 2.0.7
+BModuleJs 2.1.0
 ======
 
 [![Bmodulejs](http://img.shields.io/npm/v/bmodulejs.svg)](https://www.npmjs.org/package/bmodulejs) [![Bmodulejs](http://img.shields.io/npm/dm/bmodulejs.svg)](https://www.npmjs.org/package/bmodulejs)
 
-### The better "module" is to be started!
-
 #### About
-A Controller For Modules.You can use it as javascript modules controller, which can help you to make your code more structured.
+A Controller For Modules.You can use it as javascript module controller, which can help you to make your code more structured.
 You can also use it to tracking code by use the function "module.tailLog('process')" so that you can see the running log of the modules.
+
 
     # You can get it by: 
     npm install bmodulejs
 
-### API
-__$M.define( mNameStr );__
+### Optimization of 2.1.0
+1. Simplify the way to define a module.
+2. Simplify the way to use other module function by $M.mods.
+3. Change the way to deal with those variable returned by "create".
 
-    Define a new module.
-    @param {string} [mNameStr] module name, use "." to split namespace.
+### API
+__$M.defineModule( mNameStr );__
+
+    Define a new module object.The same with old "$M.define".
+    @param {string} [mNameStr] module name, use "/" to split namespace.
     @return {object}
-    var module = $M.define( 'page/home/main' );
-    
+    var module = $M.defineModule( 'page/home/main' );
+
+__$M.define( mNameStr )__
+
+    Define a new module and set it.
+    @param {string} [mNameStr] module name, use "/" to split namespace.
+    @return {object}
+    $M.define( 'page/home/main', function (module, $T, mods, ms) {
+        // Dependence treatment
+        module.require('common/database');
+        
+        return function () {
+            // use the module's function by "mods", the same with $M.mods
+            var database = new mods.common.database( dataConf );
+            
+            // show module's log by "ms", the same with $M.modules.
+            ms.common.database.showLog();
+
+            return {
+                state: 'finished'
+            };
+        };
+    }).create();
+
+> If the returned value is a function or depends on other module,you must use a function to wrap it. In other cases, you can just return it.
+
+__$M.newM__
+
+    Get a module object.
+
 __$M.create( nameStr, spec, cbk );__
 
     Create a module which you have defined by function "$M.define"
@@ -31,6 +63,10 @@ __$M.modules;__
 
     A namespace for modules.All of the modules will be added to this object.
     So, you can use those modules you added by this way.
+
+__$M.mods;__
+
+    Namespace for the return value by module's "create" function.
     
 __$M.destroy( nameStr );__
 
@@ -42,7 +78,11 @@ __$M.expendT( fnName, fn );__
     
 __$M.getModule( nameStr );__
 
-    The way to get module by name string.
+    The way to get module object by name string.
+
+__$M.getMod( nameStr )__
+
+    The way to get a defined module's function or other data.
     
 __$M.jsLoader( src, conf );__
 
@@ -74,34 +114,56 @@ __$M.tools;__
 ### Dependence treatment
 __eg.__
 
-    ~function () {
-    var module = $M.define( 'home/init' );
+    $M.define('home/init', function (module, $T, mods, ms) {
         // get it when "create" be called.
+
         module.require( 'common/database' );
-        var mods = $M.modules;
-        module.build( 'init', function () {
+
+        return function () {
+
             console.log( arguments );
+
             var nd = document.getElementById( 'example' );
+
             var dataConf = {
+
+                // index keys
+
                 'idx' : ['num', 'name', 'age']
             };
-            var database = new mods.common.database.me( dataConf );
+
+            // create database
+
+            var database = new mods.common.database( dataConf );
+
             for( var i = 0; i < 99999; i++ ) {
+
                 database.create( {
-                    'num'   : i,
-                    'name'  : 'BottleLiu' + i,
-                    'age'   : i % 24
+
+                    'num' : i,
+
+                    'name' : 'BottleLiu' + i,
+
+                    'age' : i % 24
+
                 } );
+
             }
             var str = '';
+
             var strTotal = 'Data length: ' + database.total + '<br><br>';
+
             var strGet = 'The length of data which age equal 23: ' + database.get({'age' : 23}).length;
+
             str = strTotal + strGet;
+
             nd.innerHTML = str;
+
             return database;
-        });
-        module.create('Arguments for init function.');
-    }();
+
+        };
+
+    }).create('Arguments for init function.');
     
 
 ### Strapping Tools
@@ -125,4 +187,4 @@ __Step 2.__
 __Script tag__
     
     <!--Use bmodule to load js.the attribute "after" will be loaded after "msrc"-->
-    <script src="source/bmodulejs-2.0.7.js" msrc="static/js/common/base.js" after="static/js/home/init.js"></script>
+    <script src="source/bmodulejs-2.1.0.js" msrc="static/js/common/base.js" after="static/js/home/init.js"></script>

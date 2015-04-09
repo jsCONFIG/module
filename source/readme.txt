@@ -1,1 +1,1 @@
-BmoduleJs2.0.5
+BmoduleJs2.1.0
